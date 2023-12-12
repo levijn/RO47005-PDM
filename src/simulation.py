@@ -11,6 +11,8 @@ from cubic_spline_interpolator import generate_cubic_spline
 from car_description import CarDescription
 from stanley_controller import StanleyController
 
+from map import Map, get_simple_map
+
 
 class Simulation:
 
@@ -176,8 +178,11 @@ def main():
     ax = plt.axes()
     ax.set_aspect('equal')
 
-    obstacle = plt.Rectangle((0, 0), 20, 30, color='red', fill=True)
-    ax.add_patch(obstacle)
+    # Draw map
+    map1 = get_simple_map()
+    patches = map1.get_patches()
+    for patch in patches:
+        ax.add_patch(patch)
     ax.plot(path.px, path.py, '--', color='gold')
 
     empty              = ([], [])
