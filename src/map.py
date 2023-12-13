@@ -1,13 +1,16 @@
-from collision_detection import Polygon, Point
+from collision_detection import Polygon, Point, Line, Circle, is_point_in_polygon, check_polygon_circle_collision
 import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.backend_bases import MouseButton
 
 
 class Map:
-    def __init__(self, obstacles: list[Polygon], start: Point, goal: Point, size: tuple[int, int] = (100, 100)):
+    def __init__(self, obstacles: list[Polygon], start: Point, goal: Point, size: tuple[int, int] = (40, 40)):
         self.obstacles = obstacles
         self.size = size
         self.start = start
         self.goal = goal
+        self.car_size = 0.1
         
     
     def get_patches(self) -> list:
@@ -18,20 +21,96 @@ class Map:
         patches.append(self.start.get_patch(color='g'))
         patches.append(self.goal.get_patch(color='b'))
         return patches
+    
+    
+    def is_point_in_obstacle(self, point: Point) -> bool:
+        """Checks if a point is inside an obstacle"""
+        for obstacle in self.obstacles:
+            if is_point_in_polygon(point, obstacle):
+                return True
+        return False
+    
+    def check_collision_line(self, line: Line) -> bool:
+        """Checks if a line collides with an obstacle"""
+        
+        #devide line into points by interpolation
+        x = np.linspace(line.p1.x, line.p2.x, 10)
+        y = np.linspace(line.p1.y, line.p2.y, 10)
+        points = [Point(x[i], y[i]) for i in range(len(x))]
+        print(points)
+        
+        # check if any of the points is in an obstacle
+        for obstacle in self.obstacles:
+            if isinstance(obstacle, Polygon):
+                for point in points:
+                    car_circle = Circle(point.x, point.y, self.car_size)
+                    if check_polygon_circle_collision(obstacle, car_circle):
+                        return True
+        return False
 
 
 def get_simple_map():
     """Returns a simple map"""
+    size = (10,10)
     obstacles = []
-    obstacles.append(Polygon(np.array([[0, 0], [0, 10], [10, 10], [10, 0]])))
-    obstacles.append(Polygon(np.array([[20, 0], [20, 10], [30, 10], [30, 0]])))
-    obstacles.append(Polygon(np.array([[0, 20], [0, 30], [10, 30], [10, 20]])))
-    obstacles.append(Polygon(np.array([[20, 20], [20, 30], [30, 30], [30, 20]])))
-    obstacles.append(Polygon(np.array([[40, 0], [40, 10], [50, 10], [50, 0]])))
-    obstacles.append(Polygon(np.array([[20, 40], [20, 50], [30, 50], [30, 40]])))
-    obstacles.append(Polygon(np.array([[20, 60], [20, 70], [30, 70], [30, 60]])))
     
-    start = Point(5, 5)
-    goal = Point(65, 65)
+    # add outer walls
     
-    return Map(obstacles, start, goal)
+    # add 2 inner walls 
+    obstacles.append(Polygon(np.array([[3, 3], [3, 7], [6, 6], [7, 3]])))
+    obstacles.append(Polygon(np.array([[0, 4], [3, 3], [3, 4], [0, 5]])))
+
+    start = Point(1, 1)
+    goal = Point(9, 9)
+    
+    return Map(obstacles, start, goal, size=size)
+
+def get_random_line(max_x, max_y):
+    coords = np.random.randint(0, max_x, size=4)
+    return Line(coords[0], coords[1], coords[2], coords[3])
+
+if __name__ == '__main__':
+    #plot simple example map
+    map = get_simple_map()
+    patches = map.get_patches()
+    
+    line_collisions = []
+    lines = []
+    for i in range(10):
+        line = get_random_line(10, 10)
+        line_collisions.append(map.check_collision_line(line))
+        lines.append(line)
+    
+    
+    
+    fig, ax = plt.subplots()
+    
+    # def on_move(event):
+    #     if event.inaxes:
+    #         print(f'data coords {event.xdata} {event.ydata},',
+    #             f'pixel coords {event.x} {event.y}')
+    
+    # def on_click(event):
+    #     if event.button is MouseButton.LEFT:
+    #         line = Line(10, 10, event.xdata, event.ydata)
+    #         collision = map.check_collision_line(line)
+    #         if collision:
+    #             ax.plot([line.p1.x, line.p2.x], [line.p1.y, line.p2.y], color='r')
+    #         else:
+    #             ax.plot([line.p1.x, line.p2.x], [line.p1.y, line.p2.y], color='g')
+    
+    # plt.connect('button_press_event', on_click)
+    
+    for i, line in enumerate(lines):
+        if line_collisions[i]:
+            ax.plot([line.p1.x, line.p2.x], [line.p1.y, line.p2.y], color='r')
+        else:
+            ax.plot([line.p1.x, line.p2.x], [line.p1.y, line.p2.y], color='g')
+    for patch in patches:
+        ax.add_patch(patch)
+    
+    plt.xlim(0, 10)
+    plt.ylim(0, 10)
+    plt.show()
+    
+    

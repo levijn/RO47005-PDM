@@ -12,6 +12,12 @@ class Point:
         """Returns a matplotlib patch object"""
         return plt.Circle((self.x, self.y), radius=0.1, color=color, fill=True, label=label)
     
+    def __str__(self):
+        return f'({self.x}, {self.y})'
+    
+    def __repr__(self):
+        return f'({self.x}, {self.y})'
+    
 
 class Circle:
     """Simple object to represent a circle"""
@@ -23,7 +29,12 @@ class Circle:
     def get_patch(self, fill=True, color='r', label=None):
         """Returns a matplotlib patch object"""
         return plt.Circle((self.x, self.y), radius=self.r, color=color, fill=fill, label=label)
+    
+    def __str__(self):
+        return f'({self.x}, {self.y}, r={self.r})'
 
+    def __repr__(self):
+        return f'({self.x}, {self.y}, r={self.r})'
 
 class Line:
     """Simple object to represent a line"""
@@ -85,7 +96,7 @@ def check_line_point_collision(line: Line, point: Point) -> bool:
     line_length = line.get_length()
     
     # buffer to account for floating point errors
-    buffer = 0.05
+    buffer = 0.01
     if dist1 + dist2 >= line_length - buffer and dist1 + dist2 <= line_length + buffer:
         return True
     return False
