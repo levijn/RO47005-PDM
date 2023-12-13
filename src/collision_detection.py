@@ -18,6 +18,12 @@ class Point:
     def __repr__(self):
         return f'({self.x}, {self.y})'
     
+    def array(self):
+        return np.array([self.x, self.y])
+    
+    def list(self):
+        return [self.x, self.y]
+    
 
 class Circle:
     """Simple object to represent a circle"""

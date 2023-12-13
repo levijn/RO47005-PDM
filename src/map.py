@@ -10,7 +10,7 @@ class Map:
         self.size = size
         self.start = start
         self.goal = goal
-        self.car_size = 0.1
+        self.car_size = 0.5
         
     
     def get_patches(self) -> list:
@@ -30,20 +30,21 @@ class Map:
                 return True
         return False
     
-    def check_collision_line(self, line: Line) -> bool:
+    def check_collision_line(self, line: Line, line_stepsize: float=None) -> bool:
         """Checks if a line collides with an obstacle"""
-        
+        if line_stepsize is None:
+            line_stepsize = self.car_size
         #devide line into points by interpolation
-        x = np.linspace(line.p1.x, line.p2.x, 10)
-        y = np.linspace(line.p1.y, line.p2.y, 10)
-        points = [Point(x[i], y[i]) for i in range(len(x))]
-        print(points)
+        length = line.get_length()
+        x = np.linspace(line.p1.x, line.p2.x, int(length / line_stepsize))
+        y = np.linspace(line.p1.y, line.p2.y, int(length / line_stepsize))
+        points = [[x[i], y[i]] for i in range(len(x))]
         
         # check if any of the points is in an obstacle
         for obstacle in self.obstacles:
             if isinstance(obstacle, Polygon):
                 for point in points:
-                    car_circle = Circle(point.x, point.y, self.car_size)
+                    car_circle = Circle(point[0], point[1], self.car_size)
                     if check_polygon_circle_collision(obstacle, car_circle):
                         return True
         return False
@@ -64,6 +65,28 @@ def get_simple_map():
     goal = Point(9, 9)
     
     return Map(obstacles, start, goal, size=size)
+
+
+def get_random_map(num_obstacles: int, size: tuple[int, int] = (40, 40)):
+    """Returns a random map"""
+    obstacles = []
+    for i in range(num_obstacles):
+        # generate random polygon
+        num_vertices = np.random.randint(3, 7)
+        vertices = np.random.rand(num_vertices, 2) * size
+        obstacles.append(Polygon(vertices))
+    
+    # generate random start and goal
+    reachabable = False
+    while not reachabable:
+        start = Point(*np.random.rand(2) * size)
+        goal = Point(*np.random.rand(2) * size)
+        if not any([is_point_in_polygon(start, obstacle) for obstacle in obstacles]) and \
+            not any([is_point_in_polygon(goal, obstacle) for obstacle in obstacles]):
+            reachabable = True
+    
+    return Map(obstacles, start, goal, size=size)
+
 
 def get_random_line(max_x, max_y):
     coords = np.random.randint(0, max_x, size=4)
