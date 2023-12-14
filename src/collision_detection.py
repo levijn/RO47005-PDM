@@ -75,12 +75,20 @@ class Polygon:
 
 def is_point_in_polygon(point: Point, polygon: Polygon) -> bool:
     """Checks if a point is inside a polygon"""
+    collision = False
+    next_vertex = 0
     for i in range(len(polygon.vertices)):
-        j = (i + 1) % len(polygon.vertices)
-        if (polygon.vertices[i,1] > point.y) != (polygon.vertices[j,1] > point.y):
-            if point.x < (polygon.vertices[j,0] - polygon.vertices[i,0]) * (point.y - polygon.vertices[i,1]) / (polygon.vertices[j,1] - polygon.vertices[i,1]) + polygon.vertices[i,0]:
-                return True
-    return False
+        next_vertex = i+1
+        if next_vertex == len(polygon.vertices):
+            next_vertex = 0
+        
+        vc = polygon.vertices[i]
+        vn = polygon.vertices[next_vertex]
+        
+        if ((vc[1] > point.y) != (vn[1] > point.y)) and (point.x < (vn[0] - vc[0]) * (point.y - vc[1]) / (vn[1] - vc[1]) + vc[0]):
+            #flip collision
+            collision = not collision
+    return collision
 
 
 def check_point_circle_collision(point: Point, circle: Circle) -> bool:

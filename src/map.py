@@ -10,7 +10,7 @@ class Map:
         self.size = size
         self.start = start
         self.goal = goal
-        self.car_size = 0.5
+        self.car_size = 1
         
     
     def get_patches(self) -> list:
@@ -62,7 +62,7 @@ def get_simple_map():
     obstacles.append(Polygon(np.array([[0, 4], [3, 3], [3, 4], [0, 5]])))
 
     start = Point(1, 1)
-    goal = Point(9, 9)
+    goal = Point(2, 8)
     
     return Map(obstacles, start, goal, size=size)
 
@@ -88,6 +88,7 @@ def get_random_map(num_obstacles: int, size: tuple[int, int] = (40, 40)):
     return Map(obstacles, start, goal, size=size)
 
 
+
 def get_random_line(max_x, max_y):
     coords = np.random.randint(0, max_x, size=4)
     return Line(coords[0], coords[1], coords[2], coords[3])
@@ -103,7 +104,6 @@ if __name__ == '__main__':
         line = get_random_line(10, 10)
         line_collisions.append(map.check_collision_line(line))
         lines.append(line)
-    
     
     
     fig, ax = plt.subplots()
