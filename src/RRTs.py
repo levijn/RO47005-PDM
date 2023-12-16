@@ -194,8 +194,11 @@ class RRTstar:
         self.n = 0
         self.goal_reached = False
         self.goal_sample_rate = goal_sample_rate
-        self.d_min = np.Infinity
         self.dubins = Dubins(1, 0.25)
+        self.best_goal_node = None
+        self.min_path_cost = np.Infinity
+        self.best_path = []
+        self.goal_reached = False
     
     
     def find_nearest_node(self, new_node):
@@ -246,15 +249,17 @@ class RRTstar:
         self.n += 1
         x_range = [0, self.map.size[0]]
         y_range = [0, self.map.size[1]]
+        goal_sample = False
         
         if self.n % self.goal_sample_rate == 0:
             new_node = Node(self.goal.x, self.goal.y, self.goal.yaw)
+            goal_sample = True
         else:
             new_node = Node(random.uniform(x_range[0],x_range[1]), random.uniform(y_range[0],y_range[1]), random.uniform(-np.pi, np.pi))
 
 
         # Check if new_node is not in collision with obstacles and has min distance to other nodes
-        if self.map.is_point_in_obstacle(Point(new_node.x, new_node.y)) or self.check_dist_other_nodes(new_node):
+        if self.map.is_point_in_obstacle(Point(new_node.x, new_node.y)) or (self.check_dist_other_nodes(new_node) and not goal_sample):
             return False
         
         parent, distance = self.find_nearest_node(new_node)
@@ -281,27 +286,28 @@ class RRTstar:
             
             self.nodes.append(new_node)
             RRTstar.rewire(self, new_node)
-            
-            d_goal = get_distance(new_node, self.goal)
 
-            if d_goal <= self.r_goal and d_goal < self.d_min:
-                self.d_min = d_goal
-                self.goal.parent = new_node
-                print('Goal Reached!!!')
-                self.goal_reached = True
+            if goal_sample:
+                final_path_cost = new_node.cost
+
+                if final_path_cost < self.min_path_cost:
+                    self.min_path_cost = final_path_cost
+                    self.best_goal_node = new_node
+                    self.goal_reached = True
+                    print('New Best Path!')
         
-        if self.n > self.n_max:
-            print("max iterations reached!")
+        if self.n % (self.n_max // 4) == 0:
+            #print("max iterations reached!")
+            print((self.n)/(self.n_max)*100, "% Done...")
     
     def get_path_to_goal(self):
-        node = self.goal
-        path = []
+        node = self.best_goal_node
         x = np.Infinity
         y = np.Infinity
 
         while x != self.start.x and y != self.start.y:
 
-            if node == self.goal:
+            if node == self.best_goal_node:
                 path = self.dubins.dubins_path(node.parent.pos, node.pos)
             else:
                 path = np.insert(path, 0, self.dubins.dubins_path(node.parent.pos, node.pos), axis=0)
@@ -310,12 +316,13 @@ class RRTstar:
             x = node.x
             y = node.y   
 
+        self.best_path = path
+
         return path
     
     def run(self):
         while self.n < self.n_max:
             self.expand()
-
 
     def plot(self):
         fig, ax = plt.subplots()
@@ -341,22 +348,39 @@ class RRTstar:
         
         ax.legend()
         plt.show()
+
+    def get_path(self):
+        
+        path = self.get_path_to_goal()
+        #path = self.best_path
+        num_points = len(path)
+
+        path = np.hstack((path, np.zeros(num_points).reshape(-1, 1)))
+
+        path[0, 2], path[-1, 2] = self.start.yaw, self.goal.yaw
+
+        for i in range(1, num_points-1):
+            dx = path[i, 0] - path[i-1, 0]
+            dy = path[i, 1] - path[i-1, 1]
+            path[i, 2] = np.arctan2(dy, dx)
+
+        return path
             
         
 
 if __name__ == '__main__':
     
-    # map = get_random_map(1, (20,20))
+    #map = get_random_map(1, (20,20))
     map = get_simple_map()
     
     start = map.start.list()
     goal =  map.goal.list()
     
-    n_max = 300
+    n_max = 200
     gamma = 1000
     r_goal = 0.5
-    min_dist_nodes = 0.5
-    goal_sample_rate = 100
+    min_dist_nodes = 0.25
+    goal_sample_rate = 50
     
     #rrt = RRT(map, n_max, r_goal, min_dist_nodes)
     #rrt.run()
