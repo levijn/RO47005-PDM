@@ -11,7 +11,9 @@ from cubic_spline_interpolator import generate_cubic_spline
 from car_description import CarDescription
 from stanley_controller import StanleyController
 
-from map import Map, get_simple_map
+from map import Map, get_simple_map, get_simple_map_large, get_random_map
+from RRTs import RRTstar
+from dubins import Dubins
 
 
 class Simulation:
@@ -21,8 +23,8 @@ class Simulation:
         fps = 50.0
 
         self.dt = 1/fps
-        self.map_size_x = 70
-        self.map_size_y = 40
+        self.map_size_x = 70 // 2
+        self.map_size_y = 40 // 2
         self.frames = 1000
         self.loop = False
 
@@ -81,7 +83,6 @@ class Car:
         tyre_width = 0.25
         axle_track = 1.4
         rear_overhang = 0.5 * (overall_length - wheelbase)
-
         self.tracker = StanleyController(self.k, self.ksoft, self.kyaw, self.ksteer, max_steer, wheelbase, self.px, self.py, self.pyaw)
         self.kinematic_bicycle_model = KinematicBicycleModel(wheelbase, max_steer, self.delta_time)
         self.description = CarDescription(overall_length, overall_width, rear_overhang, tyre_diameter, tyre_width, axle_track, wheelbase)
@@ -170,7 +171,7 @@ def main():
     
     sim  = Simulation()
     path = Path()
-    car  = Car(path.px[0], path.py[0], path.pyaw[0], path.px, path.py, path.pyaw, sim.dt)
+    #car  = Car(path.px[0], path.py[0], path.pyaw[0], path.px, path.py, path.pyaw, sim.dt)
 
     interval = sim.dt * 10**3
 
@@ -179,11 +180,27 @@ def main():
     ax.set_aspect('equal')
 
     # Draw map
-    map1 = get_simple_map()
+    map1 = get_simple_map_large()
     patches = map1.get_patches()
     for patch in patches:
         ax.add_patch(patch)
-    ax.plot(path.px, path.py, '--', color='gold')
+
+    # My code
+    n_max = 250
+    gamma = 1000
+    r_goal = 0.5
+    min_dist_nodes = 0
+    goal_sample_rate = 50
+    dubins = Dubins(3.5, 0.25)
+    
+    rrtstar = RRTstar(map1, gamma, n_max=n_max, min_dist_nodes=min_dist_nodes, goal_sample_rate=goal_sample_rate, dubins=dubins)
+    rrtstar.run()
+    rrtpath = rrtstar.get_path()
+
+    car  = Car(rrtpath[0, 0], rrtpath[0, 1], rrtpath[0, 2], rrtpath[:, 0], rrtpath[:, 1], rrtpath[:, 2], sim.dt)
+    
+    ax.plot(rrtpath[:, 0], rrtpath[:, 1], 'r--')
+    #ax.plot(path.px, path.py, '--', color='gold')
 
     empty              = ([], [])
     target,            = ax.plot(*empty, '+r')

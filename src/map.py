@@ -8,6 +8,7 @@ class Map:
     def __init__(self, obstacles: list[Polygon], start: Point, goal: Point, size: tuple[int, int] = (40, 40)):
         self.obstacles = obstacles
         self.size = size
+        self.dimensions = [[0, size[0]], [0, size[1]]]
         self.start = start
         self.goal = goal
         self.car_size = 1
@@ -26,8 +27,10 @@ class Map:
     def is_point_in_obstacle(self, point: Point) -> bool:
         """Checks if a point is inside an obstacle"""
         for obstacle in self.obstacles:
-            if is_point_in_polygon(point, obstacle):
+            if check_polygon_circle_collision(obstacle, Circle(point.x, point.y, self.car_size)):
                 return True
+            # if is_point_in_polygon(point, obstacle):
+            #     return True
         return False
     
     def check_collision_line(self, line: Line, line_stepsize: float=None) -> bool:
@@ -63,6 +66,22 @@ def get_simple_map():
 
     start = Point(1, 1)
     goal = Point(2, 8)
+    
+    return Map(obstacles, start, goal, size=size)
+
+def get_simple_map_large():
+    """Returns a large simple map"""
+    size = (50, 50)
+    obstacles = []
+    
+    # add outer walls
+    
+    # add 2 inner walls 
+    obstacles.append(Polygon(np.array([[10, 3], [10, 30], [25, 30], [25, 3]])))
+    obstacles.append(Polygon(np.array([[0, 4], [10, 3], [10, 12], [0, 12]])))
+
+    start = Point(1, 1)
+    goal = Point(10, 40)
     
     return Map(obstacles, start, goal, size=size)
 
