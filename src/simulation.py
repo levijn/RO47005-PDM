@@ -31,16 +31,11 @@ class Simulation:
 
 class Path:
 
-    def __init__(self):
-
-        # Get path to waypoints.csv
-        with open('../data/test.csv', newline='') as f:
-            rows = list(reader(f, delimiter=','))
-
-        ds = 0.05
-        x, y = [[float(i) for i in row] for row in zip(*rows[1:])]
-        self.px, self.py, self.pyaw, _ = generate_cubic_spline(x, y, ds)
-        print(self.px, self.py, self.pyaw)
+    def __init__(self, px, py, yaw):
+        self.px = px
+        self.py = py
+        self.pyaw = yaw
+    
 
 
 class Car:
@@ -86,6 +81,8 @@ class Car:
         self.tracker = StanleyController(self.k, self.ksoft, self.kyaw, self.ksteer, max_steer, wheelbase, self.px, self.py, self.pyaw)
         self.kinematic_bicycle_model = KinematicBicycleModel(wheelbase, max_steer, self.delta_time)
         self.description = CarDescription(overall_length, overall_width, rear_overhang, tyre_diameter, tyre_width, axle_track, wheelbase)
+        
+        self.testindex = 0
 
     
     def get_required_acceleration(self):
@@ -101,8 +98,18 @@ class Car:
 
     def drive(self):
         
+        
+        # self.testindex += 1
+        # if self.testindex/500 == 1:
+        #     #shift the path to the right
+        #     self.px += 5
+        #TODO: here we can add changes in path by directly changing the self.px and self.py arrays
+        
         acceleration = 0 if self.time > self.time_to_reach_target_velocity else self.get_required_acceleration()
+        
+        # calculates the steering angle for a given position and yaw
         self.wheel_angle, self.target_id, self.crosstrack_error = self.tracker.stanley_control(self.x, self.y, self.yaw, self.velocity, self.wheel_angle)
+        
         self.x, self.y, self.yaw, self.velocity, _, _ = self.kinematic_bicycle_model.update(self.x, self.y, self.yaw, self.velocity, acceleration, self.wheel_angle)
 
         print(f"Cross-track term: {self.crosstrack_error}{' '*10}", end="\r")
@@ -122,6 +129,7 @@ class Fargs:
     rear_axle: plt.Line2D
     annotation: plt.Annotation
     target: plt.Line2D
+    path_plot: plt.plot
    
 
 def animate(frame, fargs):
@@ -138,6 +146,7 @@ def animate(frame, fargs):
     rear_axle         = fargs.rear_axle
     annotation        = fargs.annotation
     target            = fargs.target
+    path_plot         = fargs.path_plot
 
     # Camera tracks car
     ax.set_xlim(car.x - sim.map_size_x, car.x + sim.map_size_x)
@@ -152,10 +161,9 @@ def animate(frame, fargs):
     front_left_wheel.set_data(*fl_plot)
     rear_left_wheel.set_data(*rl_plot)
     rear_axle.set_data(car.x, car.y)
-
-    # Show car's target
-    target.set_data(path.px[car.target_id], path.py[car.target_id])
-
+    
+    
+    path_plot.set_data(car.px, car.py)
     # Annotate car's coordinate above car
     annotation.set_text(f'{car.x:.1f}, {car.y:.1f}')
     annotation.set_position((car.x, car.y + 5))
@@ -170,7 +178,7 @@ def animate(frame, fargs):
 def main():
     
     sim  = Simulation()
-    path = Path()
+    
     #car  = Car(path.px[0], path.py[0], path.pyaw[0], path.px, path.py, path.pyaw, sim.dt)
 
     interval = sim.dt * 10**3
@@ -187,7 +195,7 @@ def main():
 
     # My code
     n_max = 250
-    gamma = 1000
+    gamma = 50
     r_goal = 0.5
     min_dist_nodes = 0
     goal_sample_rate = 50
@@ -199,7 +207,8 @@ def main():
 
     car  = Car(rrtpath[0, 0], rrtpath[0, 1], rrtpath[0, 2], rrtpath[:, 0], rrtpath[:, 1], rrtpath[:, 2], sim.dt)
     
-    ax.plot(rrtpath[:, 0], rrtpath[:, 1], 'r--')
+    path = Path(rrtpath[:, 0], rrtpath[:, 1], rrtpath[:, 2])
+    # ax.plot(rrtpath[:, 0], rrtpath[:, 1], 'r--')
     #ax.plot(path.px, path.py, '--', color='gold')
 
     empty              = ([], [])
@@ -210,6 +219,7 @@ def main():
     front_left_wheel,  = ax.plot(*empty, color=car.colour)
     rear_left_wheel,   = ax.plot(*empty, color=car.colour)
     rear_axle,         = ax.plot(car.x, car.y, '+', color=car.colour, markersize=2)
+    path_plot,         = ax.plot(*empty, color='gold')
     annotation         = ax.annotate(f'{car.x:.1f}, {car.y:.1f}', xy=(car.x, car.y + 5), color='black', annotation_clip=False)
 
     fargs = [Fargs(
@@ -224,7 +234,8 @@ def main():
         rear_left_wheel=rear_left_wheel,
         rear_axle=rear_axle,
         annotation=annotation,
-        target=target
+        target=target,
+        path_plot=path_plot
     )]
 
     _ = FuncAnimation(fig, animate, frames=sim.frames, init_func=lambda: None, fargs=fargs, interval=interval, repeat=sim.loop)
