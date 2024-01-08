@@ -2,6 +2,7 @@
 from csv import reader
 from dataclasses import dataclass
 from math import radians
+import numpy as np
 
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -27,6 +28,7 @@ class Simulation:
         self.map_size_y = 40 // 2
         self.frames = 1000
         self.loop = False
+        self.save = True
 
 
 class Path:
@@ -130,6 +132,8 @@ class Fargs:
     annotation: plt.Annotation
     target: plt.Line2D
     path_plot: plt.plot
+    moving_obstacles: list
+    moving_obstacles_plot: list
    
 
 def animate(frame, fargs):
@@ -147,6 +151,13 @@ def animate(frame, fargs):
     annotation        = fargs.annotation
     target            = fargs.target
     path_plot         = fargs.path_plot
+    moving_obstacles  = fargs.moving_obstacles
+    moving_obstacles_plot = fargs.moving_obstacles_plot
+    
+    # Update moving obstacles
+    for i, obstacle in enumerate(moving_obstacles):
+        obstacle.update_position(sim.dt)
+        moving_obstacles_plot[i][0].set_data(obstacle.position[0], obstacle.position[1])
 
     # Camera tracks car
     ax.set_xlim(car.x - sim.map_size_x, car.x + sim.map_size_x)
@@ -175,6 +186,16 @@ def animate(frame, fargs):
     return car_outline, front_right_wheel, rear_right_wheel, front_left_wheel, rear_left_wheel, rear_axle, target,
 
 
+class MovingObstacle:
+    def __init__(self, pos, vel, radius):
+        self.position = pos
+        self.velocity = vel
+        self.radius = radius
+        
+    def update_position(self, dt):
+        self.position = self.position + self.velocity * dt
+
+
 def main():
     
     sim  = Simulation()
@@ -194,11 +215,11 @@ def main():
         ax.add_patch(patch)
 
     # My code
-    n_max = 250
+    n_max = 100
     gamma = 50
-    r_goal = 0.5
-    min_dist_nodes = 0
-    goal_sample_rate = 50
+    r_goal = 1
+    min_dist_nodes = 1
+    goal_sample_rate = 30
     dubins = Dubins(3.5, 0.25)
     
     rrtstar = RRTstar(map1, gamma, n_max=n_max, min_dist_nodes=min_dist_nodes, goal_sample_rate=goal_sample_rate, dubins=dubins)
@@ -210,6 +231,8 @@ def main():
     path = Path(rrtpath[:, 0], rrtpath[:, 1], rrtpath[:, 2])
     # ax.plot(rrtpath[:, 0], rrtpath[:, 1], 'r--')
     #ax.plot(path.px, path.py, '--', color='gold')
+    
+    moving_obstacles = [MovingObstacle(np.array([30,10]), np.array([2,-2]), 1)]
 
     empty              = ([], [])
     target,            = ax.plot(*empty, '+r')
@@ -221,6 +244,9 @@ def main():
     rear_axle,         = ax.plot(car.x, car.y, '+', color=car.colour, markersize=2)
     path_plot,         = ax.plot(*empty, color='gold')
     annotation         = ax.annotate(f'{car.x:.1f}, {car.y:.1f}', xy=(car.x, car.y + 5), color='black', annotation_clip=False)
+    moving_obstacles_plot = []
+    for obstacle in moving_obstacles:
+        moving_obstacles_plot.append(ax.plot(obstacle.position[0], obstacle.position[1], 'o', color = 'red'))
 
     fargs = [Fargs(
         ax=ax,
@@ -235,14 +261,20 @@ def main():
         rear_axle=rear_axle,
         annotation=annotation,
         target=target,
-        path_plot=path_plot
+        path_plot=path_plot,
+        moving_obstacles=moving_obstacles,
+        moving_obstacles_plot=moving_obstacles_plot
     )]
 
-    _ = FuncAnimation(fig, animate, frames=sim.frames, init_func=lambda: None, fargs=fargs, interval=interval, repeat=sim.loop)
-    # anim.save('animation.gif', writer='imagemagick', fps=50)
-    
     plt.grid()
-    plt.show()
+    anim = FuncAnimation(fig, animate, frames=sim.frames, init_func=lambda: None, fargs=fargs, interval=interval, repeat=sim.loop)
+
+    if sim.save:
+        anim.save('animation.gif', writer='imagemagick', fps=50)
+    else:
+        plt.show()
+        
+    
 
 
 if __name__ == '__main__':
