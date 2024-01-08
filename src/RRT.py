@@ -1,19 +1,32 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Dec 12 13:11:54 2023
-
-@author: arnou
-"""
-
 import numpy as np
 import random
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from map import Map, get_simple_map, get_random_map
+
+import sys
+import pathlib
+sys.path.append(str(pathlib.Path(__file__).parent.parent)) 
+sys.path.append(str(pathlib.Path(__file__).parent)) 
+
 from collision_detection import Line, Point
 
 class Node:
+    """
+    Node of the RRT
+    """
+
     def __init__(self, x, y):
+        """
+        Attributes
+        ----------
+
+        x : float | x position of Node
+        y : float | y position of Node
+        parent: Node | the Node parent of the current Node
+        dparent: int | the depth of the Node parent
+        cost: float | the cost to reach the node from start Node
+
+        """
         self.x = x
         self.y = y
         self.parent = None
@@ -21,27 +34,32 @@ class Node:
         self.cost = 0.0
     
     def line_to_node(self, node):
-        """Returns a line from self to node"""
+        """Returns a line from current node to other node, used for collision checking"""
         return Line(self.x, self.y, node.x, node.y)
 
 
 def get_distance(node1, node2):
-    """Returns the distance between two nodes"""
+    """Returns the euclidean distance between two nodes"""
     distance = np.hypot(node1.x - node2.x, node1.y - node2.y)
     return distance
 
 class RRT:
+    """
+    Class for the RRT planner
+    """
+
     def __init__(self, map, n_max=500, r_goal=0.5, min_dist_nodes=0.5, goal_sample_rate=50):
-        self.start = Node(map.start.x, map.start.y)
-        self.goal = Node(map.goal.x, map.goal.y)
+        self.start = map.start
+        self.goal = map.goal
         self.map = map
         self.n_max = n_max
         self.r_goal = r_goal
         self.min_dist_nodes = min_dist_nodes
+        self.goal_sample_rate = goal_sample_rate
+
         self.nodes = [self.start]
         self.n = 0
         self.goal_reached = False
-        self.goal_sample_rate = goal_sample_rate
         self.d_min = np.Infinity
     
     def find_nearest_node(self, new_node):
@@ -67,7 +85,7 @@ class RRT:
     
     def expand(self):
         """
-        Expands the tree
+        Main loop of the RRT algorithm
         returns True if goal reached or max iterations reached, else False
         """
         self.n += 1
@@ -113,6 +131,7 @@ class RRT:
         return False
     
     def get_path_to_goal(self):
+        """Returns the found path from start to goal"""
         node = self.goal
         path = [node]
         x = np.Infinity
@@ -127,28 +146,38 @@ class RRT:
         return path
 
     def run(self):
+        """
+        Runs the loop of the RRT algorithm, stops if goal has been reached
+        or if max iteratations (n_max) has been reached 
+        """
         goal_reached = False
+
         while goal_reached == False:
             goal_reached = self.expand()
         
 
     def plot(self):
+        """
+        Plots the final path from start to goal in red,
+        The obstacles are plotted in black,
+        The randomly sampled nodes and their connections are also plotted
+        """
         fig, ax = plt.subplots()
         ax.plot(self.start.x,self.start.y, 'o', markersize = 20, label='start')
         ax.plot(self.goal.x,self.goal.y, 'o', markersize = 20, label='goal')
         
-        # plot obstacles
+        # Plot obstacles
         for patch in self.map.get_patches():
             ax.add_patch(patch)
         
-        # plot all nodes
+        # Plot all nodes
         for node in self.nodes:
             ax.plot(node.x,node.y, 'o')
             if node.parent == None:
                 continue
             ax.plot([node.x, node.parent.x], [node.y, node.parent.y], 'b')
         
-        # plot path to goal red
+        # Plot path to goal red
         if self.goal_reached == True:
             path = self.get_path_to_goal()
             for node in path:
@@ -158,25 +187,5 @@ class RRT:
         
         ax.legend()
         plt.show()
-         
-        
-if __name__ == '__main__':
-    
-    # map = get_random_map(1, (20,20))
-    map = get_simple_map()
-    
-    start = map.start.list()
-    goal =  map.goal.list()
-    
-    n_max = 500
-    step = 0.1
-    gamma = 100
-    r_goal = 0.5
-    min_dist_nodes = 0.2
-    goal_sample_rate = 500
-    
-    rrt = RRT(map, n_max, r_goal, min_dist_nodes, goal_sample_rate)
-    rrt.run()
-    rrt.plot()
 
     

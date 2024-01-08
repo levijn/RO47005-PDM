@@ -277,20 +277,9 @@ def main(env_name="map"):
     draw_canvas = EnvironmentCreator(root, [500, 500], [500, 500], 5, env_name)
     root.mainloop()
 
-    # f = open('map.json')
-    # save = json.load(f)
-
-    # obstacles = save["obstacles"]
-    # start_node = Node(save["start"][0], save["start"][1], save["start"][2])
-    # goal_node = Node(save["goal"][0], save["goal"][1], save["goal"][2])
-    # size = save["size"]
-
-    # map = Map(convert_to_polygons(obstacles), start_node, goal_node, size)
     map = load_environment(env_name)
     
     plot_map(map)
-
-    #f.close()
 
 
 if __name__ == "__main__":
