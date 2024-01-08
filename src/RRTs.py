@@ -8,10 +8,10 @@ Created on Tue Dec 12 13:11:54 2023
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from map import Map, get_simple_map, get_random_map
-from collision_detection import Line, Point
+from collision_detection import Point
 from dubins import Dubins
+from create_environment import load_environment
 
 class Node:
     def __init__(self, x, y, yaw):
@@ -54,8 +54,8 @@ def collision_check(path, map):
 
 class RRT:
     def __init__(self, map, n_max=500, r_goal=0.5, min_dist_nodes=0.5, goal_sample_rate=50, dubins=Dubins(1, 0.25)):
-        self.start = Node(map.start.x, map.start.y, 0)
-        self.goal = Node(map.goal.x, map.goal.y, np.pi/4)
+        self.start = map.start
+        self.goal = map.goal
         self.map = map
         self.n_max = n_max
         self.r_goal = r_goal
@@ -212,8 +212,8 @@ class RRT:
             
 class RRTstar:
     def __init__(self, map, gamma, n_max=500, min_dist_nodes=0.5, goal_sample_rate=50, dubins=Dubins(1, 0.25)):
-        self.start = Node(map.start.x, map.start.y, 0)
-        self.goal = Node(map.goal.x, map.goal.y, np.pi/4)
+        self.start = map.start
+        self.goal = map.goal
         self.map = map
         self.n_max = n_max
         self.gamma = gamma
@@ -401,21 +401,19 @@ if __name__ == '__main__':
     
     #map = get_random_map(1, (20,20))
     map = get_simple_map()
-    
-    start = map.start.list()
-    goal =  map.goal.list()
+    #map = load_environment("map")
     
     n_max = 300
     gamma = 1000
     r_goal = 0.5
     min_dist_nodes = 0
-    goal_sample_rate = 25
+    goal_sample_rate = 50
     
     # rrt = RRT(map, n_max, r_goal, min_dist_nodes)
     # rrt.run()
     # rrt.plot()
     
-    rrtstar = RRTstar(map, gamma, n_max=n_max, min_dist_nodes=min_dist_nodes, goal_sample_rate=goal_sample_rate)
+    rrtstar = RRTstar(map, gamma, n_max=n_max, min_dist_nodes=min_dist_nodes, goal_sample_rate=goal_sample_rate, dubins=Dubins(1, 0.5))
     rrtstar.run()
     rrtstar.plot()
     

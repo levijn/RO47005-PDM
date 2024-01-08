@@ -3,9 +3,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.backend_bases import MouseButton
 
+class Node:
+    def __init__(self, x, y, yaw):
+        self.x = x
+        self.y = y
+        self.yaw = yaw
+        self.pos = [x, y, yaw]
+        self.parent = None
+        self.dparent = 0
+        self.cost = 0.0
+
+    def get_patch(self, color='r', label=None):
+        """Returns a matplotlib patch object"""
+        return plt.Circle((self.x, self.y), radius=0.1, color=color, fill=True, label=label)
 
 class Map:
-    def __init__(self, obstacles: list[Polygon], start: Point, goal: Point, size: tuple[int, int] = (40, 40)):
+    def __init__(self, obstacles: list[Polygon], start: Node, goal: Node, size: tuple[int, int] = (40, 40)):
         self.obstacles = obstacles
         self.size = size
         self.dimensions = [[0, size[0]], [0, size[1]]]
@@ -13,7 +26,6 @@ class Map:
         self.goal = goal
         self.car_size = 1
         
-    
     def get_patches(self) -> list:
         """Returns a list of matplotlib patch objects for the map"""
         patches = []
@@ -64,8 +76,8 @@ def get_simple_map():
     obstacles.append(Polygon(np.array([[3, 3], [3, 7], [6, 6], [7, 3]])))
     obstacles.append(Polygon(np.array([[0, 4], [3, 3], [3, 4], [0, 5]])))
 
-    start = Point(1, 1)
-    goal = Point(2, 8)
+    start = Node(1, 1, 0)
+    goal = Node(2, 8, np.pi/4)
     
     return Map(obstacles, start, goal, size=size)
 

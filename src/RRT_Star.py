@@ -1,33 +1,46 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-from map import Map, get_simple_map, get_random_map
-from collision_detection import Line, Point
+
+#from map import Map, get_simple_map, get_random_map
+from collision_detection import Point
 
 class Node:
+    """
+    Node of the RRT_Star
+    """
+
     def __init__(self, x, y):
+        """
+        Attributes
+        ----------
+
+        x : float | x position of Node
+        y : float | y position of Node
+        parent: Node | the Node parent of the current Node
+        dparent: int | the depth of the Node parent
+        cost: float | the cost to reach the node from start Node
+
+        """
         self.x = x
         self.y = y
         self.parent = None
         self.dparent = 0
         self.cost = 0.0
     
-    def line_to_node(self, node):
-        """Returns a line from self to node"""
-        return Line(self.x, self.y, node.x, node.y)
-    
 def get_distance(node1, node2):
     """Returns the distance between two nodes"""
     distance = np.hypot(node1.x - node2.x, node1.y - node2.y)
     return distance
 
-def collision_check(from_node, to_node, map, n=25):
+def collision_check(from_node, to_node, map, n_step=0.25):
     """
     Check if path between two nodes is not in collision with the obstacles
     in the map. 
     """
     in_collision = False
+    n_max = max(np.abs(to_node.x-from_node.x), np.abs(to_node.y-from_node.y))
+    n = int(n_max / 0.25)
 
     x_r = np.linspace(from_node.x, to_node.x, n)
     y_r = np.linspace(from_node.y, to_node.y, n)
@@ -41,14 +54,16 @@ def collision_check(from_node, to_node, map, n=25):
         
     return in_collision
 
-class RRTstar:
-    def __init__(self, map, gamma, n_max=500, r_goal=0.5, min_dist_nodes=0.5, goal_sample_rate=50):
+class RRT_Star:
+    """
+    Class for the RRT* planner, similiar to RRT but has a rewire step
+    """
+    def __init__(self, map, gamma, n_max=500, min_dist_nodes=0.5, goal_sample_rate=50):
         self.start = Node(map.start.x, map.start.y)
         self.goal = Node(map.goal.x, map.goal.y)
         self.map = map
         self.n_max = n_max
         self.gamma = gamma
-        self.r_goal = r_goal
         self.min_dist_nodes = min_dist_nodes
         self.nodes = [self.start]
         self.n = 0
@@ -71,13 +86,13 @@ class RRTstar:
     def rewire(self, new_node):
         """Rewires the tree"""
         n = len(self.nodes)
-        r = self.gamma * (np.log(n)/n)**1/2
+        r = self.gamma * (np.log(n)/n)**1/2 # Rewire radius
 
         for node in self.nodes:
             distance = get_distance(node, new_node)
                 
             if new_node.cost > (node.cost + distance) and distance <= r:
-                #in_collision = self.map.check_collision_line(new_node.line_to_node(node))
+
                 in_collision = collision_check(node, new_node, self.map)
 
                 if in_collision == True: # if collision skip rewire
@@ -87,7 +102,6 @@ class RRTstar:
                 new_node.dparent = node.dparent + 1
             
             if (new_node.cost + distance) < node.cost and distance <= r:
-                #in_collision = self.map.check_collision_line(new_node.line_to_node(node))
                 in_collision = collision_check(new_node, node, self.map)
 
                 if in_collision: # if collision skip rewire
@@ -106,6 +120,10 @@ class RRTstar:
         return False
     
     def expand(self):
+        """
+        Main loop of the RRT_Star algorithm, stops if max iterations has been reached
+        """
+
         self.n += 1
         x_range = [0,self.map.size[0]]
         y_range = [0,self.map.size[1]]
@@ -117,12 +135,11 @@ class RRTstar:
         else:
             new_node = Node(random.uniform(x_range[0],x_range[1]), random.uniform(y_range[0],y_range[1]))
 
-        # Informed
-        if self.goal_reached:
-            in_ellipse = get_distance(new_node, self.start) + get_distance(new_node, self.goal) <= self.min_path_cost
-            if not in_ellipse:
-                #print("Throw away")
-                return False
+        # # Informed
+        # if self.goal_reached:
+        #     in_ellipse = get_distance(new_node, self.start) + get_distance(new_node, self.goal) <= self.min_path_cost
+        #     if not in_ellipse:
+        #         return False
         
         # Check if new_node is not in collision with obstacles and has min distance to other nodes
         if self.map.is_point_in_obstacle(Point(new_node.x, new_node.y)) or (self.check_dist_other_nodes(new_node) and not goal_sample):
@@ -137,7 +154,6 @@ class RRTstar:
         new_node.cost = new_node.parent.cost + euclidean_dist
 
         # Check if connection between new_node and parent is not in collision
-        #in_collision = self.map.check_collision_line(new_node.line_to_node(parent))
         in_collision = collision_check(parent, new_node, self.map)
         
         if not in_collision:
@@ -154,13 +170,17 @@ class RRTstar:
                     self.goal_reached = True
                     print('New Best Path!')
         
+        # Progress
         if self.n % (self.n_max // 10) == 0:
             print((self.n)/(self.n_max)*100, "% Done...")
     
     def get_path_to_goal(self):
+        """Returns the found path from start to goal"""
+
         if self.goal_reached == False:
-            print('goal not reached')
+            print('Goal not reached')
             return None
+        
         node = self.goal
         path = [node]
         x = np.Infinity
@@ -174,27 +194,36 @@ class RRTstar:
         return path
     
     def run(self):
+        """
+        Runs the loop of the RRT* algorithm, stops until max iteratations (n_max) has been reached 
+        """
+
         while self.n < self.n_max:
             self.expand()
 
-
     def plot(self):
+        """
+        Plots the final path from start to goal in red,
+        The obstacles are plotted in black,
+        The randomly sampled nodes and their connections are also plotted
+        """
+
         fig, ax = plt.subplots()
         ax.plot(self.start.x,self.start.y, 'o', markersize = 20, label='start')
         ax.plot(self.goal.x,self.goal.y, 'o', markersize = 20, label='goal')
         
-        # plot obstacles
+        # Plot obstacles
         for patch in self.map.get_patches():
             ax.add_patch(patch)
         
-        # plot all nodes
+        # Plot all nodes
         for node in self.nodes:
             ax.plot(node.x,node.y, 'o')
             if node.parent == None:
                 continue
             ax.plot([node.x, node.parent.x], [node.y, node.parent.y], 'b')
         
-        # plot path to goal red
+        # Plot path to goal in red
         if self.goal_reached == True:
             path = self.get_path_to_goal()
             for node in path:
@@ -207,20 +236,20 @@ class RRTstar:
             
         
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
     
-    # map = get_random_map(1, (20,20))
-    map = get_simple_map()
+#     # map = get_random_map(1, (20,20))
+#     map = get_simple_map()
     
-    start = map.start.list()
-    goal =  map.goal.list()
+#     start = map.start.list()
+#     goal =  map.goal.list()
     
-    n_max = 200
-    gamma = 100
-    r_goal = 0.5
-    min_dist_nodes = 0
-    goal_sample_rate = 50
+#     n_max = 200
+#     gamma = 100
+#     r_goal = 0.5
+#     min_dist_nodes = 0
+#     goal_sample_rate = 50
     
-    rrtstar = RRTstar(map, gamma, n_max=n_max, r_goal=r_goal, min_dist_nodes=min_dist_nodes, goal_sample_rate=goal_sample_rate)
-    rrtstar.run()
-    rrtstar.plot()
+#     rrtstar = RRT_Star(map, gamma, n_max=n_max, r_goal=r_goal, min_dist_nodes=min_dist_nodes, goal_sample_rate=goal_sample_rate)
+#     rrtstar.run()
+#     rrtstar.plot()
