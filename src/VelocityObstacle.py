@@ -2,42 +2,34 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 from matplotlib.patches import Circle
-import time
+
 class VelocityObstacle:
 
-    def __init__(self, position, velocity, search_radius, preferred_velocity, radius, a):
+    def __init__(self, position, velocity, search_radius, preferred_velocity, radius, accel):
         
         self.position = position
         self.velocity = velocity
         self.radius = radius
         self.search_radius = search_radius
         self.preferred_velocity = preferred_velocity
-        self.min_speed = np.array([0,0])
-        self.a = np.array(a)
+        self.a = np.array(accel)
 
     def compute_VO(self):
         VO = []
         for i in range(len(self.neighbors)):
-            #t_collison = self.compute_TTC(self.neighbors[i])
-            #if t_collison == False:
-            #    break
             
             pos_rel = self.neighbors[i].position - self.position
             vel_rel = self.neighbors[i].velocity - self.velocity
             pos_rel_mag = np.sqrt(np.sum(pos_rel**2))
-            #pos_rel_norm = pos_rel/pos_rel_mag
-            #pos_rel_norm_perp = np.array([pos_rel_norm[1],-pos_rel_norm[0]])
+
             theta = np.arctan((self.neighbors[i].radius + self.radius)/ pos_rel_mag)
             
             rotation_matrix_1 = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
             rotation_matrix_2 = np.array([[np.cos(-theta), -np.sin(-theta)], [np.sin(-theta), np.cos(-theta)]])
-            edge1 = np.dot(rotation_matrix_1, pos_rel) * 20
+            edge1 = np.dot(rotation_matrix_1, pos_rel) * 20 #Officially till infinity, but this should be long enough 
             edge2 = np.dot(rotation_matrix_2, pos_rel) * 20
 
-            
-            
-           # edge1 = pos_rel_norm * np.cos(theta) - pos_rel_norm_perp * np.sin(theta)
-            #edge2 = pos_rel_norm * np.cos(theta) + pos_rel_norm_perp * np.sin(theta)
+
             VO.append(np.array([edge1,edge2,vel_rel,theta], dtype =object))
         return np.array(VO)
     
@@ -60,16 +52,14 @@ class VelocityObstacle:
         ttc = t1 #To be updated if necessary
         return ttc   
    
-    def choose_speed(self,ref,VOs,dt): ###To be updated, now just brakes or speeds up with instant acceleration
-        
+    def choose_speed(self,ref,VOs,dt): ###To be updated, now just brakes or speeds up with instant acceleration  
         
         if ((ref - self.velocity) - self.a * dt <= 0).all() :
             v = ref
             col = self.velocity_check(v, VOs)
             if col == False:
                 return v
-            
-       
+                  
         v = self.velocity + self.a * dt
         col = self.velocity_check(v, VOs)
         n = 0
@@ -118,16 +108,14 @@ class VelocityObstacle:
         for VO in self.VOs:
             edge1, edge2, vel_rel, theta = VO
 
-            # Calculate the apex of the VO cone
             apex = self.position + vel_rel
             speed = self.position + self.velocity
             
             ax.plot([self.position[0], apex[0]], [self.position[1], apex[1]], 'b--')
             ax.plot([self.position[0], speed[0]], [self.position[1], speed[1]], 'r-')
-            # Plotting the edges of the VO cone
+
             ax.plot([apex[0], apex[0] + edge1[0]], [apex[1], apex[1] + edge1[1]], 'g--')
             ax.plot([apex[0], apex[0] + edge2[0]], [apex[1], apex[1] + edge2[1]], 'g--')
-
             
             cone_x = [apex[0], apex[0] + edge1[0], apex[0] + edge2[0]]
             cone_y = [apex[1], apex[1] + edge1[1], apex[1] + edge2[1]]
@@ -142,7 +130,7 @@ class Obstacle:
         self.position = self.position + self.velocity * dt     
         
 if __name__ == "__main__":       
-    agent = VelocityObstacle(position = np.array([2,0]), velocity =  np.array([0,1]), search_radius=2, preferred_velocity=np.array([0,1]), radius = 0.1, a = [0,0.5])
+    agent = VelocityObstacle(position = np.array([2,0]), velocity =  np.array([0,1]), search_radius=2, preferred_velocity=np.array([0,1]), radius = 0.1, accel = [0,0.5])
     obs1 = Obstacle(np.array([0,2]), np.array([1,0]), 0.1)
     obs = [obs1]
     for n in range(5):
@@ -153,7 +141,6 @@ if __name__ == "__main__":
         ax.set_xlim([0,4])
         ax.set_ylim([0,4])
         agent.update_position(obs, 0.05)
-       # vv.append(agent.velocity)
         agent_circle = Circle((agent.position[0], agent.position[1]), agent.radius, color='red')
         a = ax.add_patch(agent_circle)
         b = []
