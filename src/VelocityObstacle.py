@@ -38,7 +38,7 @@ class VelocityObstacle:
             
            # edge1 = pos_rel_norm * np.cos(theta) - pos_rel_norm_perp * np.sin(theta)
             #edge2 = pos_rel_norm * np.cos(theta) + pos_rel_norm_perp * np.sin(theta)
-            VO.append(np.array([edge1,edge2,vel_rel,theta]))
+            VO.append(np.array([edge1,edge2,vel_rel,theta], dtype =object))
         return np.array(VO)
     
     def compute_TTC(self,neighbor): ###Not really used now, can check for possible collisions. Can be used later for prioritisation or something
