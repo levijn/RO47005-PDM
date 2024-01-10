@@ -5,14 +5,13 @@ from matplotlib.patches import Circle
 import time
 class VelocityObstacle:
 
-    def __init__(self, position, velocity, search_radius, preferred_velocity, max_speed, radius, a):
+    def __init__(self, position, velocity, search_radius, preferred_velocity, radius, a):
         
         self.position = position
         self.velocity = velocity
         self.radius = radius
         self.search_radius = search_radius
         self.preferred_velocity = preferred_velocity
-        self.max_speed = max_speed
         self.min_speed = np.array([0,0])
         self.a = np.array(a)
 
@@ -63,29 +62,34 @@ class VelocityObstacle:
    
     def choose_speed(self,ref,VOs,dt): ###To be updated, now just brakes or speeds up with instant acceleration
         
-        if np.linalg.norm(ref) > np.linalg.norm(self.velocity + self.a * dt):
-            v = self.velocity + self.a * dt
-        else : 
+        
+        if ((ref - self.velocity) - self.a * dt <= 0).all() :
             v = ref
+            col = self.velocity_check(v, VOs)
+            if col == False:
+                return v
+            
+       
+        v = self.velocity + self.a * dt
+
         
         col = self.velocity_check(v, VOs)
         n = 0
         
-        while col == True and n < 99: 
-            v = v * (99-n)/100
+        while col == True and n < 101: 
+            
+            v = v - v * 1/100
             col = self.velocity_check(v, VOs)
             n += 1    
             
         #if n >= 99:
-            
+             
          #   v = np.array()
         return v   
     
     def velocity_check(self,v,VOs):
         is_in = False
-        #if v.all(0):
-        #    print(0)
-        #    return is_in
+
         for VO in VOs:
 
             edge1, edge2, apex, theta = VO
@@ -140,9 +144,8 @@ class Obstacle:
         self.velocity = vel
         self.radius = radius
     def update_position(self,dt):
-        self.position = self.position + self.velocity * dt
-        
-agent = VelocityObstacle(np.array([2,0]), np.array([0,1]), 2, np.array([0,1]),np.array([0,2]), 0.1, [0,0.5])
+        self.position = self.position + self.velocity * dt        
+agent = VelocityObstacle(position = np.array([2,0]), velocity =  np.array([0,1]), search_radius=2, preferred_velocity=np.array([0,1]), radius = 0.1, a = [0,0.5])
 obs1 = Obstacle(np.array([0,2]), np.array([1,0]), 0.1)
 obs = [obs1]
 for n in range(5):
@@ -165,7 +168,7 @@ def run(i):
     return a,b
 fig, ax = plt.subplots(1,1)
 
-ani = animation.FuncAnimation(fig, run, frames=200, repeat = False, blit = False)
+ani = animation.FuncAnimation(fig, run, frames=150, repeat = False, blit = False)
 
 
 output_file = 'animation.gif'
