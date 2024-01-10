@@ -71,8 +71,6 @@ class VelocityObstacle:
             
        
         v = self.velocity + self.a * dt
-
-        
         col = self.velocity_check(v, VOs)
         n = 0
         
@@ -81,10 +79,7 @@ class VelocityObstacle:
             v = v - v * 1/100
             col = self.velocity_check(v, VOs)
             n += 1    
-            
-        #if n >= 99:
-             
-         #   v = np.array()
+
         return v   
     
     def velocity_check(self,v,VOs):
@@ -128,7 +123,7 @@ class VelocityObstacle:
             speed = self.position + self.velocity
             
             ax.plot([self.position[0], apex[0]], [self.position[1], apex[1]], 'b--')
-            ax.plot([self.position[0], speed[0]], [self.position[1], speed[1]], 'r--')
+            ax.plot([self.position[0], speed[0]], [self.position[1], speed[1]], 'r-')
             # Plotting the edges of the VO cone
             ax.plot([apex[0], apex[0] + edge1[0]], [apex[1], apex[1] + edge1[1]], 'g--')
             ax.plot([apex[0], apex[0] + edge2[0]], [apex[1], apex[1] + edge2[1]], 'g--')
@@ -144,33 +139,32 @@ class Obstacle:
         self.velocity = vel
         self.radius = radius
     def update_position(self,dt):
-        self.position = self.position + self.velocity * dt        
-agent = VelocityObstacle(position = np.array([2,0]), velocity =  np.array([0,1]), search_radius=2, preferred_velocity=np.array([0,1]), radius = 0.1, a = [0,0.5])
-obs1 = Obstacle(np.array([0,2]), np.array([1,0]), 0.1)
-obs = [obs1]
-for n in range(5):
-    obs.append(Obstacle(np.array([4/5*n,0.2+3.8/5*n]), np.array([-0.3,0]), 0.1))
- 
-def run(i):
-    ax.clear()
-    ax.set_xlim([0,4])
-    ax.set_ylim([0,4])
-    agent.update_position(obs, 0.05)
-    agent_circle = Circle((agent.position[0], agent.position[1]), agent.radius, color='red')
-    a = ax.add_patch(agent_circle)
-    b = []
-    for ob in obs:
-        ob.update_position(0.05)
-        ob_circle = Circle((ob.position[0], ob.position[1]), ob.radius, color='blue')
-        b.append(ax.add_patch(ob_circle))
-    #time.sleep(0.1)
-    agent.plot_vo_cones(ax)
-    return a,b
-fig, ax = plt.subplots(1,1)
+        self.position = self.position + self.velocity * dt     
+        
+if __name__ == "__main__":       
+    agent = VelocityObstacle(position = np.array([2,0]), velocity =  np.array([0,1]), search_radius=2, preferred_velocity=np.array([0,1]), radius = 0.1, a = [0,0.5])
+    obs1 = Obstacle(np.array([0,2]), np.array([1,0]), 0.1)
+    obs = [obs1]
+    for n in range(5):
+        obs.append(Obstacle(np.array([4/5*n,0.2+3.8/5*n]), np.array([-0.3,0]), 0.1))
+    
+    def run(i):
+        ax.clear()
+        ax.set_xlim([0,4])
+        ax.set_ylim([0,4])
+        agent.update_position(obs, 0.05)
+       # vv.append(agent.velocity)
+        agent_circle = Circle((agent.position[0], agent.position[1]), agent.radius, color='red')
+        a = ax.add_patch(agent_circle)
+        b = []
+        for ob in obs:
+            ob.update_position(0.05)
+            ob_circle = Circle((ob.position[0], ob.position[1]), ob.radius, color='blue')
+            b.append(ax.add_patch(ob_circle))
+        #time.sleep(0.1)
+        agent.plot_vo_cones(ax)
+        return a,b
+    fig, ax = plt.subplots(1,1)
+    ani = animation.FuncAnimation(fig, run, frames=120, repeat = False, blit = False) 
 
-ani = animation.FuncAnimation(fig, run, frames=150, repeat = False, blit = False)
-
-
-output_file = 'animation.gif'
-#ani.save(output_file, writer='pillow')
 
