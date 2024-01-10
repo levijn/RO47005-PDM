@@ -12,9 +12,11 @@ from cubic_spline_interpolator import generate_cubic_spline
 from car_description import CarDescription
 from stanley_controller import StanleyController
 
-from map import Map, get_simple_map, get_simple_map_large, get_random_map
+from map import Map, get_simple_map, get_simple_map_large, get_random_map, create_grid_map
 from RRTs import RRTstar
 from dubins import Dubins
+from create_environment import load_environment
+from RRT_Star_Dubins import RRT_Star_Dubins
 
 
 class Simulation:
@@ -24,9 +26,9 @@ class Simulation:
         fps = 50.0
 
         self.dt = 1/fps
-        self.map_size_x = 70 // 2
-        self.map_size_y = 40 // 2
-        self.frames = 1000
+        self.map_size_x = 20 // 2
+        self.map_size_y = 20 // 2
+        self.frames = 600
         self.loop = False
         self.save = True
 
@@ -57,7 +59,7 @@ class Car:
         wheelbase = 2.0
 
         # Acceleration parameters
-        target_velocity = 10.0
+        target_velocity = 5.0
         self.time_to_reach_target_velocity = 5.0
         self.required_acceleration = target_velocity / self.time_to_reach_target_velocity
 
@@ -160,8 +162,8 @@ def animate(frame, fargs):
         moving_obstacles_plot[i][0].set_data(obstacle.position[0], obstacle.position[1])
 
     # Camera tracks car
-    ax.set_xlim(car.x - sim.map_size_x, car.x + sim.map_size_x)
-    ax.set_ylim(car.y - sim.map_size_y, car.y + sim.map_size_y)
+    # ax.set_xlim(car.x - sim.map_size_x, car.x + sim.map_size_x)
+    # ax.set_ylim(car.y - sim.map_size_y, car.y + sim.map_size_y)
 
     # Drive and draw car
     car.drive()
@@ -207,23 +209,33 @@ def main():
     fig = plt.figure()
     ax = plt.axes()
     ax.set_aspect('equal')
+    
+   
 
     # Draw map
-    map1 = get_simple_map_large()
+    map_name = 'map_grid'
+    # map1 = load_environment(map_name)
+    map1 = create_grid_map()
     patches = map1.get_patches()
     for patch in patches:
         ax.add_patch(patch)
+    
+     #set the limits of the plot to map size
+    ax.set_xlim(0, map1.size[0])
+    ax.set_ylim(0, map1.size[1])
 
     # My code
-    n_max = 100
-    gamma = 50
-    r_goal = 1
-    min_dist_nodes = 1
+    n_max = 600
+    gamma = 600
+    r_goal = 0.5
+    min_dist_nodes = 0
     goal_sample_rate = 30
-    dubins = Dubins(3.5, 0.25)
+    dubins = Dubins(4, 0.3)
     
-    rrtstar = RRTstar(map1, gamma, n_max=n_max, min_dist_nodes=min_dist_nodes, goal_sample_rate=goal_sample_rate, dubins=dubins)
-    rrtstar.run()
+    save_name = f"sim_rrt_star_dubins_{map_name}_g_{gamma}_n_{n_max}"
+    
+    rrtstar = RRT_Star_Dubins(map1, gamma, n_max=n_max, min_dist_nodes=min_dist_nodes, goal_sample_rate=goal_sample_rate, dubins=dubins)
+    rrtstar.create_intermediate_plots(show=False, save=True, save_path="plots/"+save_name+".png", plot_score=True)
     rrtpath = rrtstar.get_path()
 
     car  = Car(rrtpath[0, 0], rrtpath[0, 1], rrtpath[0, 2], rrtpath[:, 0], rrtpath[:, 1], rrtpath[:, 2], sim.dt)
@@ -233,6 +245,7 @@ def main():
     #ax.plot(path.px, path.py, '--', color='gold')
     
     moving_obstacles = [MovingObstacle(np.array([30,10]), np.array([2,-2]), 1)]
+    moving_obstacles = []
 
     empty              = ([], [])
     target,            = ax.plot(*empty, '+r')
@@ -270,7 +283,7 @@ def main():
     anim = FuncAnimation(fig, animate, frames=sim.frames, init_func=lambda: None, fargs=fargs, interval=interval, repeat=sim.loop)
 
     if sim.save:
-        anim.save('animation.gif', writer='imagemagick', fps=50)
+        anim.save("plots/"+save_name+".gif", writer='imagemagick', fps=50)
     else:
         plt.show()
         

@@ -247,17 +247,23 @@ class EnvironmentCreator:
 
         self.root.destroy()
 
-def plot_map(map):
+def plot_map(map, show=True, save=False, save_path=""):
     patches = map.get_patches()
     print(map.start)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10, 10))
 
+    ax.set_aspect('equal')
     for patch in patches:
         ax.add_patch(patch)
     
     plt.xlim(0, map.size[0])
     plt.ylim(0, map.size[1])
-    plt.show()
+    
+    if save:
+        plt.savefig(save_path)
+    
+    if show:
+        plt.show()
 
 def load_environment(env_name):
     f = open("maps/" + env_name + ".json")
@@ -274,7 +280,7 @@ def load_environment(env_name):
 
 def main(env_name="map"):
     root = tk.Tk()
-    draw_canvas = EnvironmentCreator(root, [500, 500], [500, 500], 5, env_name)
+    draw_canvas = EnvironmentCreator(root, [600, 600], [600, 600], 20, env_name)
     root.mainloop()
 
     map = load_environment(env_name)
@@ -283,5 +289,5 @@ def main(env_name="map"):
 
 
 if __name__ == "__main__":
-    env_name = "map"
+    env_name = "map_grid"
     main(env_name)

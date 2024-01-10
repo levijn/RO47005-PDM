@@ -15,7 +15,7 @@ class Node:
 
     def get_patch(self, color='r', label=None):
         """Returns a matplotlib patch object"""
-        return plt.Circle((self.x, self.y), radius=0.1, color=color, fill=True, label=label)
+        return plt.Circle((self.x, self.y), radius=1, color=color, fill=True, label=label)
 
 class Map:
     def __init__(self, obstacles: list[Polygon], start: Node, goal: Node, size: tuple[int, int] = (40, 40)):
@@ -24,7 +24,7 @@ class Map:
         self.dimensions = [[0, size[0]], [0, size[1]]]
         self.start = start
         self.goal = goal
-        self.car_size = 1
+        self.car_size = 1.2
         
     def get_patches(self) -> list:
         """Returns a list of matplotlib patch objects for the map"""
@@ -118,6 +118,46 @@ def get_random_map(num_obstacles: int, size: tuple[int, int] = (40, 40)):
     
     return Map(obstacles, start, goal, size=size)
 
+
+def create_grid_map():
+    """Creates a grid map"""
+    
+    def create_square_polygon(x, y, size):
+        """Creates a square polygon"""
+        return Polygon(np.array([[x, y], [x, y+size], [x+size, y+size], [x+size, y]]))
+    
+    def create_rect_polygon(x, y, size_x, size_y):
+        """Creates a rectangle polygon"""
+        return Polygon(np.array([[x, y], [x, y+size_y], [x+size_x, y+size_y], [x+size_x, y]]))
+    
+    size = 30
+    
+    wall_size = 0.5
+    #create border walls
+    obstacles = []
+    obstacles.append(create_rect_polygon(0, 0, size, wall_size))
+    obstacles.append(create_rect_polygon(0, 0, wall_size, size))
+    obstacles.append(create_rect_polygon(0, size-wall_size, size, wall_size))
+    obstacles.append(create_rect_polygon(size-wall_size, 0, wall_size, size))
+
+    size_box = 2
+    num_boxes = 3
+    step_size = 8.5
+    start_x = 5.5
+    start_y = 5.5
+    #create inner walls
+    for i in range(num_boxes):
+        obstacles.append(create_square_polygon(start_x + i*step_size, start_y, size_box))
+        obstacles.append(create_square_polygon(start_x + i*step_size, start_y + step_size, size_box))
+        obstacles.append(create_square_polygon(start_x + i*step_size, start_y + 2*step_size, size_box))
+
+    
+    # create start and goal
+    start = Node(2.5, 2.5, 0)
+    goal = Node(size-2.5, size-2.5, 0)
+    
+    return Map(obstacles, start, goal, size=(size,size))
+    
 
 
 def get_random_line(max_x, max_y):

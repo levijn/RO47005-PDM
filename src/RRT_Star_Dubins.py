@@ -1,6 +1,7 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import time
 
 from collision_detection import Point
 from dubins import Dubins
@@ -36,7 +37,7 @@ class RRT_Star_Dubins:
     Class for the RRT* planner using dubins as connector / steering function
     """
 
-    def __init__(self, map, gamma, n_max=500, min_dist_nodes=0.5, goal_sample_rate=50, dubins=Dubins(1, 0.25)):
+    def __init__(self, map, gamma, n_max=500, min_dist_nodes=0.5, goal_sample_rate=50, dubins=Dubins(4, 0.25)):
         self.start = map.start
         self.goal = map.goal
         self.map = map
@@ -204,10 +205,11 @@ class RRT_Star_Dubins:
 
         return path
 
-    def plot(self):
-        fig, ax = plt.subplots()
-        ax.plot(self.start.x,self.start.y, 'o', markersize = 20, label='start')
-        ax.plot(self.goal.x,self.goal.y, 'o', markersize = 20, label='goal')
+    def plot(self, show=True, save=False, save_path=""):
+        fig, ax = plt.subplots(figsize=(10, 10))
+
+        ax.plot(self.start.x,self.start.y, 'o', markersize = 10, label='start')
+        ax.plot(self.goal.x,self.goal.y, 'o', markersize = 10, label='goal')
         
         # Plot the obstacles
         for patch in self.map.get_patches():
@@ -215,16 +217,98 @@ class RRT_Star_Dubins:
         
         # Plot all nodes
         for node in self.nodes:
-            ax.plot(node.x,node.y, 'o')
+            ax.plot(node.x,node.y, 'o', markersize=2, color='black')
             if node.parent == None:
                 continue
             node_path = self.dubins.dubins_path(node.parent.pos, node.pos)
-            ax.plot(node_path[:, 0], node_path[:, 1], 'b')
+            ax.plot(node_path[:, 0], node_path[:, 1], 'b', linewidth=0.7)
         
         # Plot path from start to goal in red
         if self.goal_reached == True:
             path = self.get_path()
-            ax.plot(path[:, 0], path[:, 1], 'r')
+            ax.plot(path[:, 0], path[:, 1], 'r', label="Best path")
         
         ax.legend()
-        plt.show()
+        ax.set_title(f"RRT* Dubins (iterations: {self.n})")
+        ax.set_aspect('equal')
+        ax.set_xlim(0, self.map.size[0])
+        ax.set_ylim(0, self.map.size[1])
+        ax.set_xticks([])
+        ax.set_yticks([])
+        
+        
+        if save:
+            plt.savefig(save_path)
+        if show:
+            plt.show()
+        
+    def create_intermediate_plots(self, show=True, save=False, save_path="", plot_score=False):
+        """Create a plot stopping every fraction of the iterations assuming it has not been run yet"""
+        # check if not yet run
+        if self.n > 0:
+            print("Already run, cannot create intermediate plots")
+            return
+        
+        fig, axs = plt.subplots(2, 2, figsize=(10, 10))
+        
+        stop_points = [self.n_max // 4, self.n_max // 2, self.n_max // 4 * 3, self.n_max]
+        
+        score = []
+        start_time = time.time()
+        for n in stop_points:
+            while self.n < n:
+                self.expand()
+                # add current best score to list
+                if plot_score:
+                    score.append(self.min_path_cost)
+            
+            elapsed_time = time.time() - start_time
+            ax = axs.flatten()[stop_points.index(n)]
+            ax.plot(self.start.x,self.start.y, 'o', markersize = 10, label='start')
+            ax.plot(self.goal.x,self.goal.y, 'o', markersize = 10, label='goal')
+            
+            # Plot the obstacles
+            for patch in self.map.get_patches():
+                ax.add_patch(patch)
+            
+            # Plot all nodes
+            for node in self.nodes:
+                ax.plot(node.x,node.y, 'o', markersize=2, color='black')
+                if node.parent == None:
+                    continue
+                node_path = self.dubins.dubins_path(node.parent.pos, node.pos)
+                ax.plot(node_path[:, 0], node_path[:, 1], 'b', linewidth=0.7)
+            
+            # Plot path from start to goal in red
+            if self.goal_reached == True:
+                path = self.get_path()
+                ax.plot(path[:, 0], path[:, 1], 'r')
+            
+            ax.set_xlim(0, self.map.size[0])
+            ax.set_ylim(0, self.map.size[1])
+            ax.set_aspect('equal')
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_title(f"{n} iterations (time: {elapsed_time:.2f}s)")
+            plt.subplots_adjust(wspace=0, hspace=0.1)
+        
+        if save:
+            plt.savefig(save_path)
+        if show:
+            plt.show()
+        
+        if plot_score:
+            # remove infinities from list
+            inf_list = [0 for x in score if x == np.Infinity]
+            score = [x for x in score if x != np.Infinity]
+            score_combined = inf_list + score
+            x = np.arange(0, len(score_combined))
+
+            plt.figure()
+            plt.plot(x, score_combined, label="score")
+            plt.xlabel("iterations")
+            plt.ylabel("score")
+            plt.title("score over iterations")
+            plt.savefig(save_path+"_score.png")
+            
+            
