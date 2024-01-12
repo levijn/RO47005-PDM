@@ -10,16 +10,16 @@ def main():
     folder = "plots/"
     
     # first make a plot of the map that is used
-    map_name = "map_grid"
-    # env_map = load_environment(map_name)
-    env_map = create_grid_map()
+    map_name = "map_simple"
+    env_map = load_environment(map_name)
+    # env_map = create_grid_map()
     plot_map(env_map, show=False, save=True, save_path=folder+map_name+".png")
     
     # settings for the RRT* algorithm
-    gamma = 300
-    n_max = 1200
+    gamma = 1000
+    n_max = 1000
     min_dist_nodes = 0
-    goal_sample_rate = 30
+    goal_sample_rate = 50
     
     save_name = f"rrt_star_dubins_{map_name}_g_{gamma}_n_{n_max}"
     

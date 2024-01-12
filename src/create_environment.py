@@ -280,7 +280,7 @@ def load_environment(env_name):
 
 def main(env_name="map"):
     root = tk.Tk()
-    draw_canvas = EnvironmentCreator(root, [600, 600], [600, 600], 20, env_name)
+    draw_canvas = EnvironmentCreator(root, [600, 600], [600, 600], 10, env_name)
     root.mainloop()
 
     map = load_environment(env_name)
@@ -289,5 +289,5 @@ def main(env_name="map"):
 
 
 if __name__ == "__main__":
-    env_name = "map_grid"
+    env_name = "map_large"
     main(env_name)

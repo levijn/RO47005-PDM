@@ -30,7 +30,7 @@ class VelocityObstacle:
             edge2 = np.dot(rotation_matrix_2, pos_rel) * 20
 
 
-            VO.append(np.array([edge1,edge2,vel_rel,theta], dtype =object))
+            VO.append(np.array([edge1,edge2,vel_rel,theta], dtype=object))
         return np.array(VO)
     
     def compute_TTC(self,neighbor): ###Not really used now, can check for possible collisions. Can be used later for prioritisation or something
@@ -94,7 +94,7 @@ class VelocityObstacle:
         v = self.choose_speed(self.preferred_velocity, self.VOs, dt)
         self.velocity = v
         self.position = self.position + v * dt
-        print(f"Agent v:{v}, p:{self.position}")
+        # print(f"Agent v:{v}, p:{self.position}")
         
     def detect_neighbors(self, agents):
         self.neighbors = []
@@ -130,7 +130,12 @@ class Obstacle:
         self.position = self.position + self.velocity * dt     
         
 if __name__ == "__main__":       
-    agent = VelocityObstacle(position = np.array([2,0]), velocity =  np.array([0,1]), search_radius=2, preferred_velocity=np.array([0,1]), radius = 0.1, accel = [0,0.5])
+    agent = VelocityObstacle(position = np.array([2,0]), 
+                             velocity =  np.array([0,1]), 
+                             search_radius=2, 
+                             preferred_velocity=np.array([0,1]), 
+                             radius = 0.1, 
+                             accel = [0,0.5])
     obs1 = Obstacle(np.array([0,2]), np.array([1,0]), 0.1)
     obs = [obs1]
     for n in range(5):
@@ -153,5 +158,6 @@ if __name__ == "__main__":
         return a,b
     fig, ax = plt.subplots(1,1)
     ani = animation.FuncAnimation(fig, run, frames=120, repeat = False, blit = False) 
+    ani.save('test.gif', writer='imagemagick', fps=20)
 
 
