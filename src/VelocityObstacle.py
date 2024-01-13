@@ -156,8 +156,15 @@ if __name__ == "__main__":
         #time.sleep(0.1)
         agent.plot_vo_cones(ax)
         return a,b
+    
     fig, ax = plt.subplots(1,1)
-    ani = animation.FuncAnimation(fig, run, frames=120, repeat = False, blit = False) 
-    ani.save('test.gif', writer='imagemagick', fps=20)
 
+    save_gif = False
+
+    ani = animation.FuncAnimation(fig, run, frames=120, repeat = False, blit = False)
+
+    if save_gif: 
+        ani.save('velocity_obstacle.gif', writer='imagemagick', fps=20)
+    else:
+        plt.show()
 

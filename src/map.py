@@ -1,7 +1,7 @@
-from collision_detection import Polygon, Point, Line, Circle, is_point_in_polygon, check_polygon_circle_collision
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.backend_bases import MouseButton
+
+from collision_detection import Polygon, Point, Line, Circle, is_point_in_polygon, check_polygon_circle_collision
 
 class Node:
     def __init__(self, x, y, yaw):
@@ -18,21 +18,24 @@ class Node:
         return plt.Circle((self.x, self.y), radius=1, color=color, fill=True, label=label)
 
 class Map:
-    def __init__(self, obstacles: list[Polygon], start: Node, goal: Node, size: tuple[int, int] = (40, 40)):
+    def __init__(self, obstacles: list[Polygon], start: Node, goal: Node, size: tuple[int, int] = (40, 40), plot_start_goal: bool = False):
         self.obstacles = obstacles
         self.size = size
         self.dimensions = [[0, size[0]], [0, size[1]]]
         self.start = start
         self.goal = goal
         self.car_size = 1.2
+        self.plot_start_goal = plot_start_goal
         
     def get_patches(self) -> list:
         """Returns a list of matplotlib patch objects for the map"""
         patches = []
         for obstacle in self.obstacles:
             patches.append(obstacle.get_patch(color='black'))
-        patches.append(self.start.get_patch(color='g'))
-        patches.append(self.goal.get_patch(color='b'))
+        
+        if self.plot_start_goal:
+            patches.append(self.start.get_patch(color='g'))
+            patches.append(self.goal.get_patch(color='b'))
         return patches
     
     
@@ -158,8 +161,6 @@ def create_grid_map():
     
     return Map(obstacles, start, goal, size=(size,size))
     
-
-
 def get_random_line(max_x, max_y):
     coords = np.random.randint(0, max_x, size=4)
     return Line(coords[0], coords[1], coords[2], coords[3])
@@ -178,22 +179,6 @@ if __name__ == '__main__':
     
     
     fig, ax = plt.subplots()
-    
-    # def on_move(event):
-    #     if event.inaxes:
-    #         print(f'data coords {event.xdata} {event.ydata},',
-    #             f'pixel coords {event.x} {event.y}')
-    
-    # def on_click(event):
-    #     if event.button is MouseButton.LEFT:
-    #         line = Line(10, 10, event.xdata, event.ydata)
-    #         collision = map.check_collision_line(line)
-    #         if collision:
-    #             ax.plot([line.p1.x, line.p2.x], [line.p1.y, line.p2.y], color='r')
-    #         else:
-    #             ax.plot([line.p1.x, line.p2.x], [line.p1.y, line.p2.y], color='g')
-    
-    # plt.connect('button_press_event', on_click)
     
     for i, line in enumerate(lines):
         if line_collisions[i]:

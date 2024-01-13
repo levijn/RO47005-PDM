@@ -198,7 +198,7 @@ class EnvironmentCreator:
     
     def update_node_position(self, event, r=10):
         x, y = event.x, event.y
-        fill_color = "green" if self.node == "start" else "red"
+        fill_color = "green" if self.node == "start" else "blue"
         tag = self.node
 
         self.canvas.delete(tag)
@@ -265,7 +265,7 @@ def plot_map(map, show=True, save=False, save_path=""):
     if show:
         plt.show()
 
-def load_environment(env_name):
+def load_environment(env_name, plot_start_goal=False):
     f = open("maps/" + env_name + ".json")
     save = json.load(f)
 
@@ -274,20 +274,20 @@ def load_environment(env_name):
     goal_node = Node(save["goal"][0], save["goal"][1], save["goal"][2])
     size = save["size"]
 
-    map = Map(convert_to_polygons(obstacles), start_node, goal_node, size)
+    map = Map(convert_to_polygons(obstacles), start_node, goal_node, size, plot_start_goal)
     f.close()
     return map
 
-def main(env_name="map"):
+def main(map_name="map_name"):
     root = tk.Tk()
-    draw_canvas = EnvironmentCreator(root, [600, 600], [600, 600], 10, env_name)
+    draw_canvas = EnvironmentCreator(root, [600, 600], [600, 600], 10, map_name)
     root.mainloop()
 
-    map = load_environment(env_name)
+    map = load_environment(map_name, True)
     
     plot_map(map)
 
 
 if __name__ == "__main__":
-    env_name = "map_large"
-    main(env_name)
+    map_name = "map_name"
+    main(map_name)
