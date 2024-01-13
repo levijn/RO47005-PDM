@@ -1,8 +1,10 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import copy
 
-#from map import Map, get_simple_map, get_random_map
+from matplotlib.animation import FuncAnimation
+from create_environment import load_environment
 from collision_detection import Point
 
 class Node:
@@ -58,7 +60,7 @@ class RRT_Star:
     """
     Class for the RRT* planner, similiar to RRT but has a rewire step
     """
-    def __init__(self, map, gamma, n_max=500, min_dist_nodes=0.5, goal_sample_rate=50):
+    def __init__(self, map, gamma, n_max=500, min_dist_nodes=0.5, goal_sample_rate=50, timelapse=False):
         self.start = Node(map.start.x, map.start.y)
         self.goal = Node(map.goal.x, map.goal.y)
         self.map = map
@@ -70,6 +72,9 @@ class RRT_Star:
         self.goal_reached = False
         self.goal_sample_rate = goal_sample_rate
         self.min_path_cost = np.Infinity
+        self.best_path = []
+        self.timelapse = timelapse
+        self.nodes_plots = []
     
     def find_nearest_node(self, new_node):
         """Returns the nearest node and the distance to that node"""
@@ -125,9 +130,11 @@ class RRT_Star:
         """
 
         self.n += 1
-        x_range = [0,self.map.size[0]]
-        y_range = [0,self.map.size[1]]
+        x_range = [0, self.map.size[0]]
+        y_range = [0, self.map.size[1]]
         goal_sample = False
+
+        if self.timelapse: self.nodes_plots.append([])
         
         if self.n % self.goal_sample_rate == 0:
             new_node = Node(self.goal.x, self.goal.y)
@@ -135,7 +142,7 @@ class RRT_Star:
         else:
             new_node = Node(random.uniform(x_range[0],x_range[1]), random.uniform(y_range[0],y_range[1]))
 
-        # # Informed
+        # Semi-Informed
         # if self.goal_reached:
         #     in_ellipse = get_distance(new_node, self.start) + get_distance(new_node, self.goal) <= self.min_path_cost
         #     if not in_ellipse:
@@ -160,6 +167,7 @@ class RRT_Star:
             
             self.nodes.append(new_node)
             self.rewire(new_node)
+            if self.timelapse: self.nodes_plots[-1] = copy.deepcopy(self.nodes)
             
             if goal_sample:
                 final_path_cost = new_node.cost
@@ -168,10 +176,11 @@ class RRT_Star:
                     self.min_path_cost = final_path_cost
                     self.goal = new_node
                     self.goal_reached = True
+                    if self.plot_timelapse: self.best_path.append([copy.deepcopy(self.get_path_to_goal()), self.n])
                     print('New Best Path!')
         
         # Progress
-        if self.n % (self.n_max // 10) == 0:
+        if self.n % (self.n_max // 4) == 0:
             print((self.n)/(self.n_max)*100, "% Done...")
     
     def get_path_to_goal(self):
@@ -209,8 +218,8 @@ class RRT_Star:
         """
 
         fig, ax = plt.subplots()
-        ax.plot(self.start.x,self.start.y, 'o', markersize = 20, label='start')
-        ax.plot(self.goal.x,self.goal.y, 'o', markersize = 20, label='goal')
+        ax.plot(self.start.x, self.start.y, 'o', markersize = 10, label='start', color="mediumseagreen", zorder=2)
+        ax.plot(self.goal.x, self.goal.y, 'o', markersize = 10, label='goal', color="darkorange", zorder=2)
         
         # Plot obstacles
         for patch in self.map.get_patches():
@@ -218,10 +227,10 @@ class RRT_Star:
         
         # Plot all nodes
         for node in self.nodes:
-            ax.plot(node.x,node.y, 'o')
+            ax.plot(node.x, node.y, 'o', markersize=2, color='black', zorder=1)
             if node.parent == None:
                 continue
-            ax.plot([node.x, node.parent.x], [node.y, node.parent.y], 'b')
+            ax.plot([node.x, node.parent.x], [node.y, node.parent.y], linewidth=0.7, color='b')
         
         # Plot path to goal in red
         if self.goal_reached == True:
@@ -229,27 +238,117 @@ class RRT_Star:
             for node in path:
                 if node.parent == None:
                     continue
-                ax.plot([node.x, node.parent.x], [node.y, node.parent.y], 'r')
+                ax.plot([node.x, node.parent.x], [node.y, node.parent.y], 'r', zorder=10)
         
         ax.legend()
+        ax.set_title(f"RRT* (iterations: {self.n})")
+        ax.set_aspect('equal')
+        ax.set_xlim(0, self.map.size[0])
+        ax.set_ylim(0, self.map.size[1])
+        ax.set_xticks([])
+        ax.set_yticks([])
         plt.show()
-            
-        
 
-# if __name__ == '__main__':
-    
-#     # map = get_random_map(1, (20,20))
-#     map = get_simple_map()
-    
-#     start = map.start.list()
-#     goal =  map.goal.list()
-    
-#     n_max = 200
-#     gamma = 100
-#     r_goal = 0.5
-#     min_dist_nodes = 0
-#     goal_sample_rate = 50
-    
-#     rrtstar = RRT_Star(map, gamma, n_max=n_max, r_goal=r_goal, min_dist_nodes=min_dist_nodes, goal_sample_rate=goal_sample_rate)
-#     rrtstar.run()
-#     rrtstar.plot()
+    def plot_timelapse(self, save_name="name", show_timelapse=False, interval=50):
+
+        while self.n < self.n_max:
+            self.expand()
+
+        fig = plt.figure()
+        ax = plt.axes()
+        ax.set_aspect('equal')
+
+        ax.plot(self.start.x, self.start.y, 'o', markersize = 10, label='start', color="mediumseagreen", zorder=2)
+        ax.plot(self.goal.x, self.goal.y, 'o', markersize = 10, label='goal', color="darkorange", zorder=2)
+
+        # Plot the obstacles
+        for patch in self.map.get_patches():
+            ax.add_patch(patch)
+
+        def plot_function(frame):
+
+            # Plot all nodes
+            if self.nodes_plots[frame] != []: 
+                ax.clear()
+                ax.plot(self.start.x,self.start.y, 'o', markersize = 10, label='start', color="mediumseagreen", zorder=2)
+                ax.plot(self.goal.x,self.goal.y, 'o', markersize = 10, label='goal', color="darkorange", zorder=2)
+
+                # Plot the obstacles
+                for patch in self.map.get_patches():
+                    ax.add_patch(patch)
+
+                # Plot best path
+                if len(self.best_path) == 1:
+                    if self.best_path[0][1] <= frame:
+                        best_path = self.best_path[0][0]
+                        for path_node in best_path:
+                            if path_node.parent == None:
+                                continue
+                            ax.plot([path_node.x, path_node.parent.x], [path_node.y, path_node.parent.y], 'r', zorder=10)
+                elif len(self.best_path) >= 2:
+                    for i in range(len(self.best_path)-1):
+                        if self.best_path[i][1] <= frame < self.best_path[i+1][1]:
+                            best_path = self.best_path[i][0]
+                            for path_node in best_path:
+                                if path_node.parent == None:
+                                    continue
+                                ax.plot([path_node.x, path_node.parent.x], [path_node.y, path_node.parent.y], 'r', zorder=10)
+                        elif frame >= self.best_path[-1][1]:
+                            best_path = self.best_path[-1][0]
+                            for path_node in best_path:
+                                if path_node.parent == None:
+                                    continue
+                                ax.plot([path_node.x, path_node.parent.x], [path_node.y, path_node.parent.y], 'r', zorder=10)
+
+            if frame % (self.n_max // 10) == 0:
+                print(f"{frame / self.n_max * 100} % plotting...")
+
+            for i in range(len(self.nodes_plots[frame])):
+                node = self.nodes_plots[frame][i]
+
+                if node.parent == None:
+                    continue
+
+                ax.plot(node.x, node.y, 'o', markersize=2, color='black', zorder=1)
+                ax.plot([node.x, node.parent.x], [node.y, node.parent.y], 'b', linewidth=0.7, zorder=1)
+           
+            # ax.legend()
+            ax.set_title(f"RRT* (iterations: {frame+1})")
+            ax.set_aspect('equal')
+            ax.set_xlim(0, self.map.size[0])
+            ax.set_ylim(0, self.map.size[1])
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+
+        # Generate animation
+        animation = FuncAnimation(fig, plot_function, frames=self.n_max, fargs=(), interval=interval, blit=False, repeat=False)
+
+        # Save animation as a GIF
+        animation.save(save_name + '_timelapse.gif', writer='imagemagick')
+        
+        if show_timelapse: plt.show()
+            
+if __name__ == '__main__':
+
+    # Apply path planner on the following map:
+    map_name = "map_large"                 # map_name of .json file in \maps, e.g., map.json --> map_name = map
+    map = load_environment(map_name)
+
+    n_max = 500                 # max iterations of RRT
+    gamma = 1000                # gamma affecting the rewire radius
+    min_dist_nodes = 0          # minimum distance between random sampled nodes (else rejected)
+    goal_sample_rate = 50       # each time after goal_sample_rate iterations the random sample is placed at the goal location
+    timelapse = True            # Create a timelapse of path planning stored in ... as RRT_Star_Dubins_Timelapse.gif
+    show_timelapse = False      # Show the timelapse after saving it, might be very slow.
+    fps = 50                    # Fps of timelapse
+
+    rrt_star = RRT_Star(map, gamma, n_max, min_dist_nodes, goal_sample_rate, timelapse)
+
+    if timelapse:
+        rrt_star.plot_timelapse("results/RRT_Star", show_timelapse, int(1000 // fps))
+        plt.savefig("results/RRT_Star.png")
+        plt.show()
+    else:
+        rrt_star.run()
+        rrt_star.plot()

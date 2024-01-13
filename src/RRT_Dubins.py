@@ -1,7 +1,10 @@
 import numpy as np
 import random
 import matplotlib.pyplot as plt
+import copy
 
+from matplotlib.animation import FuncAnimation
+from create_environment import load_environment
 from collision_detection import Point
 from dubins import Dubins
 from helper_functions import get_distance, get_dubins_distance, collision_check
@@ -35,7 +38,7 @@ class RRT_Dubins:
     """
     Class for the RRT planner using dubins as connector / steering function
     """
-    def __init__(self, map, n_max=500, r_goal=0.5, min_dist_nodes=0.5, goal_sample_rate=50, dubins=Dubins(1, 0.25)):
+    def __init__(self, map, n_max=500, r_goal=0.5, min_dist_nodes=0.5, goal_sample_rate=50, dubins=Dubins(4, 0.25), timelapse=False):
         self.start = map.start
         self.goal = map.goal
         self.map = map
@@ -48,6 +51,9 @@ class RRT_Dubins:
         self.goal_sample_rate = goal_sample_rate
         self.d_min = np.Infinity
         self.dubins = dubins
+        self.best_path = [np.Infinity]
+        self.timelapse = timelapse
+        self.nodes_plots = [[] for i in range(self.n_max)]
 
     def find_nearest_node(self, new_node):
         """Returns the nearest node and the distance to that node"""
@@ -118,12 +124,14 @@ class RRT_Dubins:
         # Store new node if connection between parent and new_node not in collision
         if not in_collision:
             self.nodes.append(new_node)
+            if self.timelapse: self.nodes_plots[self.n-1] = copy.deepcopy(self.nodes)
             d_goal = get_distance(new_node, self.goal)
             if d_goal <= self.r_goal and d_goal < self.d_min:
                 self.d_min = d_goal
                 self.goal = new_node
                 print('Goal Reached!!!')
                 self.goal_reached = True
+                if self.plot_timelapse: self.best_path[0] = self.n
                 return True
         
         # Max iterations reached
@@ -175,8 +183,9 @@ class RRT_Dubins:
         
     def plot(self):
         fig, ax = plt.subplots()
-        ax.plot(self.start.x, self.start.y, 'o', markersize = 20, label='start')
-        ax.plot(self.goal.x, self.goal.y, 'o', markersize = 20, label='goal')
+
+        ax.plot(self.start.x, self.start.y, 'o', markersize = 10, label='start')
+        ax.plot(self.goal.x, self.goal.y, 'o', markersize = 10, label='goal')
         
         # Plot the obstacles
         for patch in self.map.get_patches():
@@ -184,11 +193,11 @@ class RRT_Dubins:
         
         # Plot all nodes
         for node in self.nodes:
-            ax.plot(node.x, node.y, 'o')
+            ax.plot(node.x, node.y, 'o', markersize=2, color='black', zorder=1)
             if node.parent == None:
                 continue
             node_path = self.dubins.dubins_path(node.parent.pos, node.pos)
-            ax.plot(node_path[:, 0], node_path[:, 1], 'b')
+            ax.plot(node_path[:, 0], node_path[:, 1], 'b', linewidth=0.7)
         
         # Plot path to goal in red
         if self.goal_reached == True:
@@ -196,4 +205,95 @@ class RRT_Dubins:
             ax.plot(path[:, 0], path[:, 1], 'r')
         
         ax.legend()
+        ax.set_title(f"RRT Dubins (iterations: {self.n})")
+        ax.set_aspect('equal')
+        ax.set_xlim(0, self.map.size[0])
+        ax.set_ylim(0, self.map.size[1])
+        ax.set_xticks([])
+        ax.set_yticks([])
         plt.show()
+
+    def plot_timelapse(self, save_name="name", show_timelapse=False, interval=50):
+        self.run()
+
+        fig = plt.figure()
+        ax = plt.axes()
+        ax.set_aspect('equal')
+
+        ax.plot(self.start.x, self.start.y, 'o', markersize = 10, label='start', color="mediumseagreen", zorder=2)
+        ax.plot(self.goal.x, self.goal.y, 'o', markersize = 10, label='goal', color="darkorange", zorder=2)
+
+        # Plot the obstacles
+        for patch in self.map.get_patches():
+            ax.add_patch(patch)
+
+        def plot_function(frame):
+
+            # Plot all nodes
+            if self.nodes_plots[frame] != []: 
+                ax.clear()
+                ax.plot(self.start.x,self.start.y, 'o', markersize = 10, label='start', color="mediumseagreen", zorder=2)
+                ax.plot(self.goal.x,self.goal.y, 'o', markersize = 10, label='goal', color="darkorange", zorder=2)
+
+                # Plot the obstacles
+                for patch in self.map.get_patches():
+                    ax.add_patch(patch)
+
+                # Plot best path
+                if frame >= self.best_path[0]-1:
+                    best_path = self.get_path()
+                    ax.plot(best_path[:, 0], best_path[:, 1], 'r', label="Best path", linewidth=1.5, zorder=10)
+
+            if frame % (self.n_max // 10) == 0:
+                print(f"{frame / self.n_max * 100} % plotting...")
+
+            for i in range(len(self.nodes_plots[frame])):
+                node = self.nodes_plots[frame][i]
+
+                if node.parent == None:
+                    continue
+
+                ax.plot(node.x, node.y, 'o', markersize=2, color='black', zorder=1)
+                node_path = self.dubins.dubins_path(node.parent.pos, node.pos)
+                ax.plot(node_path[:, 0], node_path[:, 1], 'b', linewidth=0.7, zorder=1)
+           
+            # ax.legend()
+            ax.set_title(f"RRT Dubins (iterations: {frame+1})")
+            ax.set_aspect('equal')
+            ax.set_xlim(0, self.map.size[0])
+            ax.set_ylim(0, self.map.size[1])
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+        # Generate animation
+        animation = FuncAnimation(fig, plot_function, frames=self.n_max, fargs=(), interval=interval, blit=False, repeat=False)
+
+        # Save animation as a GIF
+        animation.save(save_name + '_timelapse.gif', writer='imagemagick')
+        
+        if show_timelapse: plt.show()
+            
+if __name__ == '__main__':
+
+    # Apply path planner on the following map:
+    map_name = "map_large"                 # map_name of .json file in \maps, e.g., map.json --> map_name = map
+    map = load_environment(map_name)
+
+    n_max = 500                  # max iterations of RRT* Dubins
+    r_goal = 0.5                 # gamma affecting the rewire radius
+    min_dist_nodes = 0           # minimum distance between random sampled nodes (else rejected)
+    goal_sample_rate = 450       # each time after goal_sample_rate iterations the random sample is placed at the goal location
+    dubins = Dubins(4, 0.25)     # Dubins -> (turn radius of car, distance between points of dubins path)
+    timelapse = True             # Create a timelapse of path planning stored in ... as RRT_Star_Dubins_Timelapse.gif
+    show_timelapse = False       # Show the timelapse after saving it, might be very slow.
+    fps = 50                     # Fps of timelapse
+
+    rrt_dubins = RRT_Dubins(map, n_max, r_goal, min_dist_nodes, goal_sample_rate, dubins, timelapse)
+
+    if timelapse:
+        rrt_dubins.plot_timelapse("results/RRT_Dubins", show_timelapse, int(1000 // fps))
+        plt.savefig("results/RRT_Dubins.png")
+        plt.show()
+    else:
+        rrt_dubins.run()
+        rrt_dubins.plot()
