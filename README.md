@@ -28,11 +28,11 @@ git clone https://github.com/levijn/RO47005-PDM
 
 2) Create a virtual environment (optional but recommended):
 ```terminal
-
+python -m venv venv
 ```
 3) Activate virtual environment:
 ```terminal
-
+.\venv\Scripts\activate
 ```
 
 4) Install the required dependencies:
