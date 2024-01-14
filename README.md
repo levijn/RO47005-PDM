@@ -24,13 +24,14 @@ This repository contains the source code used for the PDM project of group 5. Th
 1) Clone the repository in a directory of choice:
 
 ```terminal
-git clone https://github.com/levijn/RO47005-PDM
+git clone https://github.com/levijn/RO47005-PDM.git
 ```
 
 2) Create a virtual environment (optional but recommended):
 ```terminal
 python -m venv venv
 ```
+
 3) Activate virtual environment:
 ```terminal
 .\venv\Scripts\activate
