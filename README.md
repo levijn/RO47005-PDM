@@ -18,6 +18,7 @@ This repository contains the source code used for the PDM project of group 5. Th
 - Created a basic GUI using tkinter for creating 2D-environments with polygonal obstacles (`src/create_environment.py` & `src/create_polygons.py`)
 - Collision detection of polygonal obstacles based on [Polygon/Point](https://www.jeffreythompson.org/collision-detection/poly-point.php) (`src/collision_detection.py`)
 - Implementation of velocity obstacle (`src/VelocityObstacle.py`)
+- Combined everything into a simulation (`src/simulation.py`) showing the global and local planner in work
 
 ## How to use
 1) Clone the repository in a directory of choice:
@@ -42,6 +43,7 @@ pip install -r requirements.txt
 ```
 
 ## Run instructions
+All commands below have to be executed within the root directory (RO47005-PDM).
 
 ### Environment creator
 The environment or map can be created using the command below:
@@ -136,5 +138,4 @@ For future work, the following can be worked on:
 - Rewriting / Implementing the code in C++ to improve computational efficiency.
 - Using a more advanced (3D) simulation environment, e.g., [gym_envs_urdf](https://github.com/maxspahn/gym_envs_urdf).
 - Enhance motion planning with dynamic bicycle model, more realistic constraints, and environmental factors.
-
-## Contact
+  
