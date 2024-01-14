@@ -385,8 +385,8 @@ class RRT_Star_Dubins:
                             best_path = self.best_path[-1][0]
                             ax.plot(best_path[:, 0], best_path[:, 1], 'r', label="Best path", linewidth=1.5, zorder=10)
 
-            if frame % (self.n_max // 10) == 0:
-                print(f"{frame / self.n_max * 100} % plotting...")
+            # if frame % (self.n_max // 10) == 0:
+            #     print(f"{frame / self.n_max * 100} % plotting...")
 
             for i in range(len(self.nodes_plots[frame])):
                 node = self.nodes_plots[frame][i]
@@ -409,25 +409,26 @@ class RRT_Star_Dubins:
 
         # Generate animation
         animation = FuncAnimation(fig, plot_function, frames=self.n_max, fargs=(), interval=interval, blit=False, repeat=False)
-
-        # Save animation as a GIF
-        animation.save(save_name + '_timelapse.gif', writer='imagemagick')
         
-        if show_timelapse: plt.show()
+        if show_timelapse: 
+            plt.show()
+        else:
+            # Save animation as a GIF
+            animation.save(save_name + '_timelapse.gif', writer='imagemagick')
             
 if __name__ == '__main__':
 
     # Apply path planner on the following map:
-    map_name = "map_large"                 # map_name of .json file in \maps, e.g., map.json --> map_name = map
+    map_name = "scenario3"                 # map_name of .json file in \maps, e.g., map.json --> map_name = map
     map = load_environment(map_name)
 
-    n_max = 1000                 # max iterations of RRT* Dubins
+    n_max = 250                  # max iterations of RRT* Dubins
     gamma = 1000                 # gamma affecting the rewire radius
     min_dist_nodes = 0           # minimum distance between random sampled nodes (else rejected)
     goal_sample_rate = 50        # each time after goal_sample_rate iterations the random sample is placed at the goal location
     dubins = Dubins(4, 0.25)     # Dubins -> (turn radius of car, distance between points of dubins path)
-    timelapse = True             # Create a timelapse of path planning stored in ... as RRT_Star_Dubins_Timelapse.gif
-    show_timelapse = False       # Show the timelapse after saving it, might be very slow.
+    timelapse = True             # Create a timelapse of path planning stored in results as RRT_Star_Dubins_Timelapse.gif
+    show_timelapse = True        # Show the timelapse in real time instead of saving, might be very slow
     fps = 50                     # Fps of timelapse
     results = False              # Show the plot results used in report
 
@@ -436,7 +437,7 @@ if __name__ == '__main__':
     if timelapse:
         rrtstar_dubins.plot_timelapse("results/RRT_Star_Dubins", show_timelapse, int(1000 // fps))
         plt.savefig("results/RRT_Star_Dubins.png")
-        plt.show()
+        if not show_timelapse: plt.show()
     elif results:
         rrtstar_dubins.create_intermediate_plots(show=True, save=True, save_path="results/scenario3", plot_score=True, plot_time=True)
     else:
