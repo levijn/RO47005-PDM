@@ -232,8 +232,8 @@ class RRT:
                             continue
                         ax.plot([node.x, node.parent.x], [node.y, node.parent.y], 'r', zorder=10)
 
-            if frame % (self.n_max // 10) == 0:
-                print(f"{frame / self.n_max * 100} % plotting...")
+            # if frame % (self.n_max // 10) == 0:
+            #     print(f"{frame / self.n_max * 100} % plotting...")
 
             for i in range(len(self.nodes_plots[frame])):
                 node = self.nodes_plots[frame][i]
@@ -256,23 +256,25 @@ class RRT:
         # Generate animation
         animation = FuncAnimation(fig, plot_function, frames=self.n_max, fargs=(), interval=interval, blit=False, repeat=False)
 
-        # Save animation as a GIF
-        animation.save(save_name + '_timelapse.gif', writer='imagemagick')
+        if show_timelapse: 
+            plt.show()
+        else:
+            # Save animation as a GIF
+            animation.save(save_name + '_timelapse.gif', writer='imagemagick')
         
-        if show_timelapse: plt.show()
 
 if __name__ == '__main__':
 
     # Apply path planner on the following map:
-    map_name = "map_large"                 # map_name of .json file in \maps, e.g., map.json --> map_name = map
+    map_name = "scenario3"                 # map_name of .json file in \maps, e.g., map.json --> map_name = map
     map = load_environment(map_name)
 
-    n_max = 500                 # max iterations of RRT
+    n_max = 250                 # max iterations of RRT
     r_goal = 0.5                # If node is within r_goal distance of the goal position --> valid
     min_dist_nodes = 0          # minimum distance between random sampled nodes (else rejected)
-    goal_sample_rate = 450      # each time after goal_sample_rate iterations the random sample is placed at the goal location
-    timelapse = True            # Create a timelapse of path planning stored in ... as RRT_Star_Dubins_Timelapse.gif
-    show_timelapse = False      # Show the timelapse after saving it, might be very slow.
+    goal_sample_rate = 200      # each time after goal_sample_rate iterations the random sample is placed at the goal location
+    timelapse = True            # Create a timelapse of path planning stored in results as RRT_Star_Dubins_Timelapse.gif
+    show_timelapse = True       # Show the timelapse in real time instead of saving, might be very slow
     fps = 50                    # Fps of timelapse
 
     rrt = RRT(map, n_max, r_goal, min_dist_nodes, goal_sample_rate, timelapse)
@@ -280,7 +282,7 @@ if __name__ == '__main__':
     if timelapse:
         rrt.plot_timelapse("results/RRT", show_timelapse, int(1000 // fps))
         plt.savefig("results/RRT.png")
-        plt.show()
+        if not show_timelapse: plt.show()
     else:
         rrt.run()
         rrt.plot()
